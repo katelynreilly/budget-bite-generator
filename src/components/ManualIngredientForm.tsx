@@ -1,0 +1,219 @@
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { ParsedData } from '@/utils/fileParser';
+
+interface ManualIngredientFormProps {
+  onDataSubmitted: (data: ParsedData) => void;
+  isLoading: boolean;
+}
+
+interface IngredientItem {
+  name: string;
+  cost: string;
+  flavorProfile: string;
+}
+
+const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({ 
+  onDataSubmitted, 
+  isLoading 
+}) => {
+  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
+  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
+  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
+  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
+  
+  const [expandedSections, setExpandedSections] = useState({
+    proteins: true,
+    grains: true,
+    vegetables: true,
+    sauces: true
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleAddItem = (
+    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+  ) => {
+    setter(prev => [...prev, { name: '', cost: '', flavorProfile: '' }]);
+  };
+
+  const handleRemoveItem = (
+    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
+    index: number,
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+  ) => {
+    setter(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (
+    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
+    index: number,
+    field: keyof IngredientItem,
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+  ) => {
+    setter(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const parseItems = (items: IngredientItem[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
+      return items
+        .filter(item => item.name.trim() !== '')
+        .map((item, index) => ({
+          id: `manual-${category}-${index}`,
+          name: item.name.trim(),
+          category,
+          cost: parseFloat(item.cost) || 0,
+          flavorProfile: item.flavorProfile.split(',').map(f => f.trim()),
+        }));
+    };
+    
+    const parsedData: ParsedData = {
+      proteins: parseItems(proteins, 'protein'),
+      grains: parseItems(grains, 'grain'),
+      vegetables: parseItems(vegetables, 'vegetable'),
+      sauces: parseItems(sauces, 'sauce'),
+    };
+    
+    onDataSubmitted(parsedData);
+  };
+
+  const renderIngredientFields = (
+    items: IngredientItem[],
+    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>,
+    isExpanded: boolean
+  ) => {
+    const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+    const singleName = category === 'proteins' ? 'Protein' : 
+                      category === 'grains' ? 'Grain' : 
+                      category === 'vegetables' ? 'Vegetable' : 'Sauce';
+    
+    return (
+      <div className="mb-6 border rounded-lg p-4">
+        <div 
+          className="flex items-center justify-between cursor-pointer mb-3"
+          onClick={() => toggleSection(category)}
+        >
+          <h3 className="text-lg font-medium">{categoryTitle}</h3>
+          <Button variant="ghost" size="sm" className="p-1 h-auto">
+            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </Button>
+        </div>
+        
+        {isExpanded && (
+          <>
+            {items.map((item, index) => (
+              <div key={index} className="mb-4 p-3 bg-secondary/30 rounded-md">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">{singleName} #{index + 1}</span>
+                  {items.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleRemoveItem(category, index, setter)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid gap-3">
+                  <div>
+                    <Label htmlFor={`${category}-${index}-name`}>{singleName} Name</Label>
+                    <Input
+                      id={`${category}-${index}-name`}
+                      value={item.name}
+                      onChange={(e) => handleItemChange(category, index, 'name', e.target.value, setter)}
+                      placeholder={`Enter ${singleName.toLowerCase()} name`}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor={`${category}-${index}-cost`}>Cost ($ per unit)</Label>
+                    <Input
+                      id={`${category}-${index}-cost`}
+                      value={item.cost}
+                      onChange={(e) => handleItemChange(category, index, 'cost', e.target.value, setter)}
+                      placeholder="0.00"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor={`${category}-${index}-flavor`}>Flavor Profile</Label>
+                    <Textarea
+                      id={`${category}-${index}-flavor`}
+                      value={item.flavorProfile}
+                      onChange={(e) => handleItemChange(category, index, 'flavorProfile', e.target.value, setter)}
+                      placeholder="e.g. sweet, savory, spicy (comma separated)"
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-2"
+              onClick={() => handleAddItem(category, setter)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add {singleName}
+            </Button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="animate-fade-in">
+      <div className="text-sm mb-4 p-4 bg-accent rounded-lg">
+        <p className="mb-2 font-medium">Instructions:</p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Add at least one item in each category</li>
+          <li>Enter the cost as a decimal number (e.g., 3.99)</li>
+          <li>For flavor profiles, enter comma-separated values (e.g., sweet, tangy, spicy)</li>
+        </ul>
+      </div>
+      
+      {renderIngredientFields(proteins, 'proteins', setProteins, expandedSections.proteins)}
+      {renderIngredientFields(grains, 'grains', setGrains, expandedSections.grains)}
+      {renderIngredientFields(vegetables, 'vegetables', setVegetables, expandedSections.vegetables)}
+      {renderIngredientFields(sauces, 'sauces', setSauces, expandedSections.sauces)}
+      
+      <Button 
+        type="submit" 
+        className="w-full mt-4" 
+        disabled={isLoading}
+      >
+        Generate Meal Plan
+      </Button>
+    </form>
+  );
+};
+
+export default ManualIngredientForm;

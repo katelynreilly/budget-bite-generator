@@ -69,23 +69,21 @@ const isMealCompatible = (
   );
 };
 
+const cookingMethods = [
+  'grilled', 'baked', 'air-fried', 'pan-seared', 'slow-cooked', 
+  'steamed', 'poached', 'stir-fried', 'roasted', 'sautéed'
+];
+
 const generateMealName = (meal: Partial<Meal>): string => {
   const proteinName = meal.protein?.name || '';
   const vegetableName = meal.vegetable?.name || '';
   const grainName = meal.grain?.name || '';
   
-  const proteinAlreadyHasCookingMethod = proteinName.includes('Grilled') || 
-    proteinName.includes('Baked') || 
-    proteinName.includes('Air-fried') || 
-    proteinName.includes('Pan-seared') || 
-    proteinName.includes('Slow-cooked') || 
-    proteinName.includes('Steamed') || 
-    proteinName.includes('Poached') || 
-    proteinName.includes('Stir-fried') || 
-    proteinName.includes('Roasted') || 
-    proteinName.includes('Sautéed');
+  const hasExistingCookingMethod = cookingMethods.some(method => 
+    proteinName.toLowerCase().includes(method)
+  );
   
-  const finalProteinName = proteinAlreadyHasCookingMethod 
+  const finalProteinName = hasExistingCookingMethod 
     ? proteinName 
     : `${['Roasted', 'Grilled', 'Pan-Seared'][Math.floor(Math.random() * 3)]} ${proteinName}`;
   

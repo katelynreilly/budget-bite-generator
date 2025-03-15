@@ -20,7 +20,7 @@ interface IngredientItem {
   cookingMethod?: string;
 }
 
-const PROTEIN_COOKING_METHODS = ['Grilled', 'Baked', 'Air-fried', 'Pan-seared', 'Slow-cooked', 'Steamed', 'Poached', 'Stir-fried'];
+const PROTEIN_COOKING_METHODS = ['Grilled', 'Baked', 'Air-fried', 'Pan-seared', 'Slow-cooked', 'Steamed', 'Poached', 'Stir-fried', 'Roasted'];
 const VEGETABLE_COOKING_METHODS = ['Roasted', 'Steamed', 'Sautéed', 'Grilled', 'Raw', 'Stir-fried', 'Blanched'];
 
 const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({ 

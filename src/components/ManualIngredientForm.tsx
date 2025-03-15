@@ -1,18 +1,33 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Minus, ChevronDown, ChevronUp, BookmarkPlus } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getSavedIngredientData, saveIngredientData } from '@/utils/storage';
+import { suggestedIngredients } from '@/pages/Index';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
   isLoading: boolean;
+  suggestedIngredients?: {
+    proteins: IngredientItem[];
+    grains: IngredientItem[];
+    vegetables: IngredientItem[];
+    sauces: IngredientItem[];
+  };
 }
 
 interface IngredientItem {
@@ -25,10 +40,11 @@ const VEGETABLE_COOKING_METHODS = ['Roasted', 'Steamed', 'Sautéed', 'Grilled', 
 
 const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({ 
   onDataSubmitted, 
-  isLoading 
+  isLoading,
+  suggestedIngredients 
 }) => {
-  // Initialize with 5 empty items in each category
-  const createEmptyItems = () => Array(5).fill({ name: '', cookingMethod: '' });
+  // Initialize with 3 empty items in each category
+  const createEmptyItems = () => Array(3).fill({ name: '', cookingMethod: '' });
   
   const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
   const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
@@ -112,6 +128,33 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       )
     );
   };
+  
+  const handleAddSuggestion = (
+    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
+    suggestion: IngredientItem,
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+  ) => {
+    // Check if this item already exists
+    setter(prev => {
+      // If it already exists, don't add it again
+      if (prev.some(item => item.name === suggestion.name)) {
+        return prev;
+      }
+      
+      // Find the first empty slot
+      const emptyIndex = prev.findIndex(item => item.name === '');
+      
+      if (emptyIndex !== -1) {
+        // Replace the empty slot
+        return prev.map((item, i) => 
+          i === emptyIndex ? suggestion : item
+        );
+      } else {
+        // Add to the end
+        return [...prev, suggestion];
+      }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,15 +219,42 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       <div className="mb-3">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-base font-medium">{label}</h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => handleAddItem(category, setter)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {suggestedIngredients && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                  >
+                    Add suggestion
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {suggestedIngredients[category].map((suggestion, idx) => (
+                    <DropdownMenuItem 
+                      key={idx}
+                      onClick={() => handleAddSuggestion(category, suggestion, setter)}
+                    >
+                      {suggestion.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => handleAddItem(category, setter)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 gap-2">
@@ -247,6 +317,12 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       <div className="text-sm mb-4 p-3 bg-accent rounded-lg">
         <p className="font-medium">Enter your preferred ingredients in each category:</p>
         <p className="text-xs text-muted-foreground mt-1">For proteins and vegetables, you can also select your preferred cooking method.</p>
+        {suggestedIngredients && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            <span className="text-xs font-medium">Suggestions:</span>
+            <Badge variant="outline" className="text-xs">Click "Add suggestion" in each section</Badge>
+          </div>
+        )}
       </div>
       
       <Accordion type="single" collapsible defaultValue="proteins" className="space-y-2">

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import FileUpload from '@/components/FileUpload';
 import ManualIngredientForm from '@/components/ManualIngredientForm';
 import MealPlan from '@/components/MealPlan';
+import MealPlanLibrary, { SavedMealPlan } from '@/components/MealPlanLibrary';
 import { ParsedData, getFallbackData } from '@/utils/fileParser';
 import { MealPlan as MealPlanType, generateMealPlan } from '@/utils/mealPlanGenerator';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,9 +16,11 @@ import {
   FileUp,
   FileDown,
   FormInput,
-  Calculator
+  Calculator,
+  Library
 } from 'lucide-react';
 import { downloadTemplateFile } from '@/utils/templateGenerator';
+import { getSavedMealPlans, deleteSavedMealPlan } from '@/utils/storage';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -25,6 +29,13 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [useFallbackData, setUseFallbackData] = useState(false);
   const [inputMethod, setInputMethod] = useState<'upload' | 'manual'>('manual');
+  const [savedPlans, setSavedPlans] = useState<SavedMealPlan[]>([]);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+
+  // Load saved meal plans on component mount
+  useEffect(() => {
+    setSavedPlans(getSavedMealPlans());
+  }, []);
 
   const handleDataParsed = (data: ParsedData) => {
     setIngredientData(data);
@@ -66,6 +77,16 @@ const Index = () => {
     downloadTemplateFile();
   };
 
+  const handleLoadSavedPlan = (plan: MealPlanType) => {
+    setMealPlan(plan);
+    setIsLibraryOpen(false);
+  };
+
+  const handleDeleteSavedPlan = (id: string) => {
+    deleteSavedMealPlan(id);
+    setSavedPlans(getSavedMealPlans());
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b py-6">
@@ -78,18 +99,33 @@ const Index = () => {
               <h1 className="text-xl font-semibold">Budget Meal Planner</h1>
             </div>
             
-            {mealPlan && (
-              <div className="hidden md:flex items-center gap-3">
-                <Button variant="outline" size="sm" className="rounded-full gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  <span>Monthly Plan</span>
-                </Button>
-                <Button variant="outline" size="sm" className="rounded-full gap-1.5">
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>Shopping List</span>
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {mealPlan ? (
+                <div className="hidden md:flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full gap-1.5"
+                    onClick={() => setIsLibraryOpen(true)}
+                  >
+                    <Library className="h-4 w-4" />
+                    <span>Library</span>
+                  </Button>
+                </div>
+              ) : (
+                savedPlans.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full gap-1.5"
+                    onClick={() => setIsLibraryOpen(true)}
+                  >
+                    <Library className="h-4 w-4" />
+                    <span>Library</span>
+                  </Button>
+                )
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -183,9 +219,19 @@ const Index = () => {
             mealPlan={mealPlan} 
             onRegeneratePlan={handleRegeneratePlan}
             isLoading={isGenerating}
+            onOpenLibrary={() => setIsLibraryOpen(true)}
           />
         )}
       </main>
+      
+      {/* Meal Plan Library Dialog */}
+      <MealPlanLibrary
+        open={isLibraryOpen}
+        onOpenChange={setIsLibraryOpen}
+        savedPlans={savedPlans}
+        onLoadPlan={handleLoadSavedPlan}
+        onDeletePlan={handleDeleteSavedPlan}
+      />
       
       <footer className="border-t py-6">
         <div className="container max-w-6xl">

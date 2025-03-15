@@ -3,29 +3,32 @@ import { Meal, WeeklyPlan, MealPlan as MealPlanType, generateShoppingList } from
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets, Library, Save } from 'lucide-react';
 import ShoppingList from './ShoppingList';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { saveMealPlan } from '@/utils/storage';
 
 interface MealPlanProps {
   mealPlan: MealPlanType;
   onRegeneratePlan: () => void;
   isLoading: boolean;
+  onOpenLibrary: () => void;
 }
 
 const MealCard = ({ meal }: { meal: Meal }) => {
-  // Generate a predictable but random-looking image based on meal ID
   const imageId = parseInt(meal.id.replace(/\D/g, ''), 10) % 15 + 1;
   const imageUrl = `https://source.unsplash.com/collection/4318479/600x400?sig=${imageId}`;
   
-  // Generate a gradient background color based on meal ID for consistency
   const gradientIndex = parseInt(meal.id.replace(/\D/g, ''), 10) % 5;
   const gradients = [
-    'bg-gradient-to-br from-amber-50 to-orange-100', // Warm gradient
-    'bg-gradient-to-br from-blue-50 to-indigo-100',  // Cool gradient
-    'bg-gradient-to-br from-emerald-50 to-teal-100', // Fresh gradient
-    'bg-gradient-to-br from-rose-50 to-pink-100',    // Sweet gradient
-    'bg-gradient-to-br from-violet-50 to-purple-100' // Rich gradient
+    'bg-gradient-to-br from-amber-50 to-orange-100',
+    'bg-gradient-to-br from-blue-50 to-indigo-100',
+    'bg-gradient-to-br from-emerald-50 to-teal-100',
+    'bg-gradient-to-br from-rose-50 to-pink-100',
+    'bg-gradient-to-br from-violet-50 to-purple-100'
   ];
   
   const gradient = gradients[gradientIndex];
@@ -109,10 +112,12 @@ const WeeklyView = ({ weeklyPlan }: { weeklyPlan: WeeklyPlan }) => {
   );
 };
 
-const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading }: MealPlanProps) => {
+const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: MealPlanProps) => {
   const { toast } = useToast();
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('meals');
+  const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
   
   const currentWeek = mealPlan.weeks[currentWeekIndex];
   const [shoppingList, setShoppingList] = useState(generateShoppingList(currentWeek));
@@ -134,6 +139,26 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading }: MealPlanProps) => {
     });
   };
 
+  const handleSavePlan = () => {
+    if (!saveName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a name for your meal plan",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    saveMealPlan(mealPlan, saveName.trim());
+    setSaveDialogOpen(false);
+    setSaveName('');
+    
+    toast({
+      title: "Meal Plan Saved",
+      description: "Your meal plan has been saved to your library"
+    });
+  };
+
   return (
     <div className="relative max-w-3xl mx-auto animate-scale-in">
       <div className="mb-6 flex items-center justify-between">
@@ -149,14 +174,34 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading }: MealPlanProps) => {
           </p>
         </div>
         
-        <Button 
-          onClick={handleRegeneratePlan}
-          disabled={isLoading}
-          variant="outline"
-          className="transition-all"
-        >
-          Regenerate Plan
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setSaveDialogOpen(true)}
+            variant="outline"
+            className="transition-all gap-1.5"
+          >
+            <Save className="h-4 w-4" />
+            <span>Save</span>
+          </Button>
+          
+          <Button
+            onClick={onOpenLibrary}
+            variant="outline"
+            className="transition-all gap-1.5"
+          >
+            <Library className="h-4 w-4" />
+            <span>Library</span>
+          </Button>
+          
+          <Button 
+            onClick={handleRegeneratePlan}
+            disabled={isLoading}
+            variant="outline"
+            className="transition-all"
+          >
+            Regenerate
+          </Button>
+        </div>
       </div>
       
       <Card className="p-5 rounded-xl shadow-sm bg-gradient-to-b from-white to-card/40">
@@ -218,6 +263,39 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading }: MealPlanProps) => {
           <span className="font-semibold text-lg">${mealPlan.totalCost.toFixed(2)}</span>
         </div>
       </div>
+      
+      <Dialog open={isSaveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              <span>Save Meal Plan</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name your meal plan</Label>
+              <Input
+                id="name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="e.g., Family Dinner Plan, Budget Meals"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSavePlan}>
+              Save Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

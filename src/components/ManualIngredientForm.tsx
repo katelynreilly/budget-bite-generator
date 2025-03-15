@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +8,7 @@ import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getSavedIngredientData, saveIngredientData } from '@/utils/storage';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
@@ -34,6 +34,43 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
   const [vegetables, setVegetables] = useState<IngredientItem[]>(createEmptyItems());
   const [sauces, setSauces] = useState<IngredientItem[]>(createEmptyItems());
+
+  // Load saved ingredient data on component mount
+  useEffect(() => {
+    const savedData = getSavedIngredientData();
+    if (savedData) {
+      // Convert saved data back to form state
+      const parseToFormItems = (items: any[], cookingMethodNeeded: boolean) => {
+        return items.map(item => {
+          const name = item.name;
+          let cookingMethod = '';
+          
+          if (cookingMethodNeeded && item.attributes && item.attributes.length > 0) {
+            // Extract cooking method from name or attributes
+            cookingMethod = item.attributes[0];
+          }
+          
+          return { name, cookingMethod };
+        });
+      };
+      
+      if (savedData.proteins.length > 0) {
+        setProteins(parseToFormItems(savedData.proteins, true));
+      }
+      
+      if (savedData.grains.length > 0) {
+        setGrains(parseToFormItems(savedData.grains, false));
+      }
+      
+      if (savedData.vegetables.length > 0) {
+        setVegetables(parseToFormItems(savedData.vegetables, true));
+      }
+      
+      if (savedData.sauces.length > 0) {
+        setSauces(parseToFormItems(savedData.sauces, false));
+      }
+    }
+  }, []);
 
   const handleAddItem = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
@@ -112,6 +149,9 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
         vegetables: await parseItems(vegetables, 'vegetable'),
         sauces: await parseItems(sauces, 'sauce'),
       };
+      
+      // Save ingredient data for future use
+      saveIngredientData(parsedData);
       
       onDataSubmitted(parsedData);
     } catch (error) {

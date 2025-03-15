@@ -75,19 +75,26 @@ const cookingMethods = [
 ];
 
 const generateMealName = (meal: Partial<Meal>): string => {
-  const proteinName = meal.protein?.name || '';
-  const vegetableName = meal.vegetable?.name || '';
-  const grainName = meal.grain?.name || '';
+  if (!meal.protein || !meal.vegetable || !meal.grain || !meal.sauce) {
+    return "Incomplete Meal";
+  }
+  
+  const proteinName = meal.protein.name;
+  const vegetableName = meal.vegetable.name;
+  const grainName = meal.grain.name;
   
   const hasExistingCookingMethod = cookingMethods.some(method => 
-    proteinName.toLowerCase().includes(method)
+    proteinName.toLowerCase().includes(method.toLowerCase())
   );
   
-  const finalProteinName = hasExistingCookingMethod 
-    ? proteinName 
-    : `${['Roasted', 'Grilled', 'Pan-Seared'][Math.floor(Math.random() * 3)]} ${proteinName}`;
+  let finalProteinName = proteinName;
   
-  return `${finalProteinName} with ${meal.sauce?.name} ${vegetableName} and ${grainName}`;
+  if (!hasExistingCookingMethod) {
+    const randomMethod = ['Roasted', 'Grilled', 'Pan-Seared'][Math.floor(Math.random() * 3)];
+    finalProteinName = `${randomMethod} ${proteinName}`;
+  }
+  
+  return `${finalProteinName} with ${meal.sauce.name} ${vegetableName} and ${grainName}`;
 };
 
 const generateMeal = (

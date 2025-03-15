@@ -8,6 +8,7 @@ import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
@@ -16,14 +17,18 @@ interface ManualIngredientFormProps {
 
 interface IngredientItem {
   name: string;
+  cookingMethod?: string;
 }
+
+const PROTEIN_COOKING_METHODS = ['Grilled', 'Baked', 'Air-fried', 'Pan-seared', 'Slow-cooked', 'Steamed', 'Poached', 'Stir-fried'];
+const VEGETABLE_COOKING_METHODS = ['Roasted', 'Steamed', 'Sautéed', 'Grilled', 'Raw', 'Stir-fried', 'Blanched'];
 
 const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({ 
   onDataSubmitted, 
   isLoading 
 }) => {
   // Initialize with 5 empty items in each category
-  const createEmptyItems = () => Array(5).fill({ name: '' });
+  const createEmptyItems = () => Array(5).fill({ name: '', cookingMethod: '' });
   
   const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
   const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
@@ -34,7 +39,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
-    setter(prev => [...prev, { name: '' }]);
+    setter(prev => [...prev, { name: '', cookingMethod: '' }]);
   };
 
   const handleRemoveItem = (
@@ -58,6 +63,19 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     );
   };
 
+  const handleCookingMethodChange = (
+    category: 'proteins' | 'vegetables',
+    index: number,
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+  ) => {
+    setter(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, cookingMethod: value } : item
+      )
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -69,12 +87,17 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
           const estimatedCost = await estimateIngredientCost(item.name.trim(), category);
           const flavorProfile = estimateFlavorProfile(item.name.trim(), category);
           
+          const name = item.cookingMethod 
+            ? `${item.cookingMethod} ${item.name.trim()}`
+            : item.name.trim();
+          
           parsedItems.push({
             id: `manual-${category}-${parsedItems.length}`,
-            name: item.name.trim(),
+            name,
             category,
             cost: estimatedCost,
             flavorProfile,
+            attributes: item.cookingMethod ? [item.cookingMethod] : undefined
           });
         }
       }
@@ -106,6 +129,9 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
                         category === 'grains' ? 'Grain' : 
                         category === 'vegetables' ? 'Vegetable' : 'Sauce';
     
+    const needsCookingMethod = category === 'proteins' || category === 'vegetables';
+    const cookingMethods = category === 'proteins' ? PROTEIN_COOKING_METHODS : VEGETABLE_COOKING_METHODS;
+    
     return (
       <div className="mb-3">
         <div className="flex justify-between items-center mb-2">
@@ -121,15 +147,46 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {items.map((item, index) => (
-            <div key={index} className="flex items-center gap-2 bg-secondary/20 rounded-md p-2">
-              <Input
-                value={item.name}
-                onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
-                placeholder={`${singleName} ${index + 1}`}
-                className="h-8 text-sm"
-              />
+            <div key={index} className="flex flex-wrap items-center gap-2 bg-secondary/20 rounded-md p-2">
+              <div className={`flex-grow ${needsCookingMethod ? 'min-w-[180px]' : 'min-w-[250px]'}`}>
+                <Input
+                  value={item.name}
+                  onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
+                  placeholder={`${singleName} ${index + 1}`}
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              {needsCookingMethod && (
+                <div className="w-[130px]">
+                  <Select
+                    value={item.cookingMethod || ""}
+                    onValueChange={(value) => 
+                      handleCookingMethodChange(
+                        category as 'proteins' | 'vegetables', 
+                        index, 
+                        value, 
+                        setter
+                      )
+                    }
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Cooking method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No preference</SelectItem>
+                      {cookingMethods.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {method}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -149,7 +206,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     <form onSubmit={handleSubmit} className="animate-fade-in">
       <div className="text-sm mb-4 p-3 bg-accent rounded-lg">
         <p className="font-medium">Enter your preferred ingredients in each category:</p>
-        <p className="text-xs text-muted-foreground mt-1">We'll automatically estimate costs and flavor profiles for you.</p>
+        <p className="text-xs text-muted-foreground mt-1">For proteins and vegetables, you can also select your preferred cooking method.</p>
       </div>
       
       <Accordion type="single" collapsible defaultValue="proteins" className="space-y-2">

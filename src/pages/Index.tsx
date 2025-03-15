@@ -1,12 +1,146 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from 'react';
+import FileUpload from '@/components/FileUpload';
+import MealPlan from '@/components/MealPlan';
+import { ParsedData, getFallbackData } from '@/utils/fileParser';
+import { MealPlan as MealPlanType, generateMealPlan } from '@/utils/mealPlanGenerator';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Utensils, Calendar, FileSpreadsheet, ShoppingCart } from 'lucide-react';
 
 const Index = () => {
+  const isMobile = useIsMobile();
+  const [ingredientData, setIngredientData] = useState<ParsedData | null>(null);
+  const [mealPlan, setMealPlan] = useState<MealPlanType | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [useFallbackData, setUseFallbackData] = useState(false);
+
+  const handleDataParsed = (data: ParsedData) => {
+    setIngredientData(data);
+    generatePlan(data);
+  };
+
+  const handleRegeneratePlan = () => {
+    if (ingredientData) {
+      generatePlan(ingredientData);
+    } else if (useFallbackData) {
+      generatePlan(getFallbackData());
+    }
+  };
+
+  const generatePlan = (data: ParsedData) => {
+    setIsGenerating(true);
+    
+    // Add a small delay to show loading state
+    setTimeout(() => {
+      const newPlan = generateMealPlan(data, {
+        weeksCount: 4,
+        mealsPerWeek: 4,
+      });
+      
+      setMealPlan(newPlan);
+      setIsGenerating(false);
+    }, 1000);
+  };
+
+  const handleUseSampleData = () => {
+    setUseFallbackData(true);
+    const fallbackData = getFallbackData();
+    setIngredientData(fallbackData);
+    generatePlan(fallbackData);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b py-6">
+        <div className="container max-w-6xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
+                <Utensils className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-semibold">Budget Meal Planner</h1>
+            </div>
+            
+            {mealPlan && (
+              <div className="hidden md:flex items-center gap-3">
+                <Button variant="outline" size="sm" className="rounded-full gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>Monthly Plan</span>
+                </Button>
+                <Button variant="outline" size="sm" className="rounded-full gap-1.5">
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Shopping List</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+      
+      <main className="flex-1 py-8 container max-w-6xl">
+        {!mealPlan ? (
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12 animate-fade-in">
+              <h2 className="text-3xl font-semibold mb-3">Create Your Monthly Meal Plan</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Upload your ingredients spreadsheet to generate a custom meal plan optimized for taste and budget.
+              </p>
+            </div>
+            
+            <div className="space-y-8">
+              <FileUpload 
+                onDataParsed={handleDataParsed} 
+                isLoading={isGenerating}
+              />
+              
+              <div className="text-center">
+                <div className="mb-2 text-sm text-muted-foreground">
+                  Don't have a spreadsheet ready?
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleUseSampleData}
+                  disabled={isGenerating}
+                  className="gap-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Use Sample Data</span>
+                </Button>
+              </div>
+              
+              {isGenerating && (
+                <div className="text-center py-4 animate-pulse">
+                  <div className="text-sm text-muted-foreground">
+                    Generating your meal plan...
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <MealPlan 
+            mealPlan={mealPlan} 
+            onRegeneratePlan={handleRegeneratePlan}
+            isLoading={isGenerating}
+          />
+        )}
+      </main>
+      
+      <footer className="border-t py-6">
+        <div className="container max-w-6xl">
+          <div className="flex flex-col md:flex-row items-center justify-between text-sm text-muted-foreground">
+            <div>
+              Budget Meal Planner &copy; {new Date().getFullYear()}
+            </div>
+            <div className="flex items-center gap-4 mt-2 md:mt-0">
+              <a href="#" className="hover:text-foreground transition-colors">Help</a>
+              <a href="#" className="hover:text-foreground transition-colors">About</a>
+              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

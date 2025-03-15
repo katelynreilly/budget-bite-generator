@@ -1,15 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { Meal, WeeklyPlan, MealPlan as MealPlanType, generateShoppingList } from '@/utils/mealPlanGenerator';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MealPlan as MealPlanType, WeeklyPlan, generateShoppingList } from '@/utils/mealPlanGenerator';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets, Library, Save, Heart } from 'lucide-react';
+import { saveMealPlan, getFavoriteRecipes } from '@/utils/storage';
+import WeeklyView from './WeeklyView';
 import ShoppingList from './ShoppingList';
-import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { saveMealPlan, saveFavoriteRecipe, removeFavoriteRecipe, isRecipeFavorite } from '@/utils/storage';
+import MealPlanHeader from './MealPlanHeader';
+import WeekNavigation from './WeekNavigation';
+import SaveMealPlanDialog from './SaveMealPlanDialog';
 
 interface MealPlanProps {
   mealPlan: MealPlanType;
@@ -17,124 +16,6 @@ interface MealPlanProps {
   isLoading: boolean;
   onOpenLibrary: () => void;
 }
-
-const MealCard = ({ meal }: { meal: Meal }) => {
-  const { toast } = useToast();
-  const [isFavorite, setIsFavorite] = useState(false);
-  
-  useEffect(() => {
-    setIsFavorite(isRecipeFavorite(meal.id));
-  }, [meal.id]);
-  
-  const gradientIndex = parseInt(meal.id.replace(/\D/g, ''), 10) % 5;
-  const gradients = [
-    'bg-gradient-to-br from-amber-50 to-orange-100',
-    'bg-gradient-to-br from-blue-50 to-indigo-100',
-    'bg-gradient-to-br from-emerald-50 to-teal-100',
-    'bg-gradient-to-br from-rose-50 to-pink-100',
-    'bg-gradient-to-br from-violet-50 to-purple-100'
-  ];
-  
-  const gradient = gradients[gradientIndex];
-  
-  const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (isFavorite) {
-      removeFavoriteRecipe(meal.id);
-      setIsFavorite(false);
-      toast({
-        title: "Recipe Removed",
-        description: "Recipe removed from your favorites."
-      });
-    } else {
-      saveFavoriteRecipe(meal);
-      setIsFavorite(true);
-      toast({
-        title: "Recipe Saved",
-        description: "Recipe saved to your favorites. It will influence future meal plans."
-      });
-    }
-  };
-  
-  return (
-    <Card className={`meal-card overflow-hidden transition-all hover:shadow-lg ${gradient} border-0 relative`}>
-      <CardContent className="p-5">
-        <button 
-          onClick={handleToggleFavorite}
-          className={`absolute top-3 right-3 p-2 rounded-full transition-colors ${isFavorite ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400 hover:text-gray-600'}`}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-        </button>
-
-        <h3 className="font-semibold text-lg leading-tight mb-3">{meal.name}</h3>
-        
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-primary/10">
-              <Utensils className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span className="text-sm truncate" title={meal.protein.name}>{meal.protein.name}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-amber-100">
-              <Wheat className="h-3.5 w-3.5 text-amber-600" />
-            </div>
-            <span className="text-sm truncate" title={meal.grain.name}>{meal.grain.name}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-emerald-100">
-              <Salad className="h-3.5 w-3.5 text-emerald-600" />
-            </div>
-            <span className="text-sm truncate" title={meal.vegetable.name}>{meal.vegetable.name}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-indigo-100">
-              <Droplets className="h-3.5 w-3.5 text-indigo-600" />
-            </div>
-            <span className="text-sm truncate" title={meal.sauce.name}>{meal.sauce.name}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between text-sm pt-3 border-t">
-          <div className="flex items-center text-muted-foreground">
-            <DollarSign className="h-3.5 w-3.5 mr-1" />
-            <span>Est. Cost:</span>
-          </div>
-          <span className="font-medium">${meal.cost.toFixed(2)}</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const WeeklyView = ({ weeklyPlan }: { weeklyPlan: WeeklyPlan }) => {
-  return (
-    <div className="animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {weeklyPlan.meals.map((meal) => (
-          <MealCard key={meal.id} meal={meal} />
-        ))}
-      </div>
-      
-      <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 text-accent-foreground">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <DollarSign className="h-4 w-4 mr-1.5" />
-            <span className="font-medium">Weekly Total Cost:</span>
-          </div>
-          <span className="font-semibold">
-            ${weeklyPlan.meals.reduce((sum, meal) => sum + meal.cost, 0).toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: MealPlanProps) => {
   const { toast } = useToast();
@@ -185,89 +66,22 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: Meal
 
   return (
     <div className="relative max-w-3xl mx-auto animate-scale-in">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="text-2xl font-semibold">Monthly Meal Plan</h2>
-          </div>
-          <p className="text-sm text-muted-foreground ml-7 mt-1">
-            4 weeks, 16 meals total
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setSaveDialogOpen(true)}
-            variant="outline"
-            className="transition-all gap-1.5"
-          >
-            <Save className="h-4 w-4" />
-            <span>Save</span>
-          </Button>
-          
-          <Button
-            onClick={onOpenLibrary}
-            variant="outline"
-            className="transition-all gap-1.5"
-          >
-            <Library className="h-4 w-4" />
-            <span>Library</span>
-          </Button>
-          
-          <Button 
-            onClick={handleRegeneratePlan}
-            disabled={isLoading}
-            variant="outline"
-            className="transition-all"
-          >
-            Regenerate
-          </Button>
-        </div>
-      </div>
+      <MealPlanHeader 
+        setSaveDialogOpen={setSaveDialogOpen}
+        onOpenLibrary={onOpenLibrary}
+        handleRegeneratePlan={handleRegeneratePlan}
+        isLoading={isLoading}
+      />
       
       <Card className="p-5 rounded-xl shadow-sm bg-gradient-to-b from-white to-card/40">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => handleWeekChange(currentWeekIndex - 1)}
-              disabled={currentWeekIndex === 0}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 rounded-full"
-              aria-label="Previous week"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            
-            <h3 className="text-lg font-medium">Week {currentWeek.weekNumber}</h3>
-            
-            <Button
-              onClick={() => handleWeekChange(currentWeekIndex + 1)}
-              disabled={currentWeekIndex === mealPlan.weeks.length - 1}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 rounded-full"
-              aria-label="Next week"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-[300px]">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="meals">Meals</TabsTrigger>
-              <TabsTrigger value="shopping">
-                <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                  <span>Shopping List</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <WeekNavigation
+          currentWeekIndex={currentWeekIndex}
+          weekNumber={currentWeek.weekNumber}
+          weeksCount={mealPlan.weeks.length}
+          activeTab={activeTab}
+          onWeekChange={handleWeekChange}
+          setActiveTab={setActiveTab}
+        />
         
         <div>
           {activeTab === 'meals' ? (
@@ -281,45 +95,19 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: Meal
       <div className="mt-6 p-5 rounded-lg shadow-sm bg-gradient-to-r from-primary/10 to-primary/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <DollarSign className="h-5 w-5 mr-2 text-primary" />
             <span className="font-medium">Total Monthly Cost:</span>
           </div>
           <span className="font-semibold text-lg">${mealPlan.totalCost.toFixed(2)}</span>
         </div>
       </div>
       
-      <Dialog open={isSaveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              <span>Save Meal Plan</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name your meal plan</Label>
-              <Input
-                id="name"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                placeholder="e.g., Family Dinner Plan, Budget Meals"
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSavePlan}>
-              Save Plan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SaveMealPlanDialog
+        open={isSaveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        saveName={saveName}
+        setSaveName={setSaveName}
+        handleSavePlan={handleSavePlan}
+      />
     </div>
   );
 };

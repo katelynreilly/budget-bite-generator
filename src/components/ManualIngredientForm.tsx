@@ -219,43 +219,36 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       <div className="mb-3">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-base font-medium">{label}</h3>
-          <div className="flex items-center gap-2">
-            {suggestedIngredients && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                  >
-                    Add suggestion
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {suggestedIngredients[category].map((suggestion, idx) => (
-                    <DropdownMenuItem 
-                      key={idx}
-                      onClick={() => handleAddSuggestion(category, suggestion, setter)}
-                    >
-                      {suggestion.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => handleAddItem(category, setter)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => handleAddItem(category, setter)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
+        
+        {/* Suggestions Section */}
+        {suggestedIngredients && (
+          <div className="mb-4 bg-secondary/30 p-3 rounded-md">
+            <p className="text-xs font-medium mb-2">Suggestions (click to add):</p>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestedIngredients[category].map((suggestion, idx) => (
+                <Badge 
+                  key={idx}
+                  variant="outline" 
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                  onClick={() => handleAddSuggestion(category, suggestion, setter)}
+                >
+                  {suggestion.name}
+                  {suggestion.cookingMethod && ` (${suggestion.cookingMethod})`}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 gap-2">
           {items.map((item, index) => (
@@ -320,7 +313,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
         {suggestedIngredients && (
           <div className="mt-2 flex flex-wrap gap-1">
             <span className="text-xs font-medium">Suggestions:</span>
-            <Badge variant="outline" className="text-xs">Click "Add suggestion" in each section</Badge>
+            <Badge variant="outline" className="text-xs">Click on any suggestion to add it</Badge>
           </div>
         )}
       </div>
@@ -367,3 +360,4 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
 };
 
 export default ManualIngredientForm;
+

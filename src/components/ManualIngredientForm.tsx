@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +42,6 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   isLoading,
   suggestedIngredients 
 }) => {
-  // Initialize with 3 empty items in each category
   const createEmptyItems = () => Array(3).fill({ name: '', cookingMethod: '' });
   
   const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
@@ -51,18 +49,15 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   const [vegetables, setVegetables] = useState<IngredientItem[]>(createEmptyItems());
   const [sauces, setSauces] = useState<IngredientItem[]>(createEmptyItems());
 
-  // Load saved ingredient data on component mount
   useEffect(() => {
     const savedData = getSavedIngredientData();
     if (savedData) {
-      // Convert saved data back to form state
       const parseToFormItems = (items: any[], cookingMethodNeeded: boolean) => {
         return items.map(item => {
           const name = item.name;
           let cookingMethod = '';
           
           if (cookingMethodNeeded && item.attributes && item.attributes.length > 0) {
-            // Extract cooking method from name or attributes
             cookingMethod = item.attributes[0];
           }
           
@@ -134,23 +129,18 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     suggestion: IngredientItem,
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
-    // Check if this item already exists
     setter(prev => {
-      // If it already exists, don't add it again
       if (prev.some(item => item.name === suggestion.name)) {
         return prev;
       }
       
-      // Find the first empty slot
       const emptyIndex = prev.findIndex(item => item.name === '');
       
       if (emptyIndex !== -1) {
-        // Replace the empty slot
         return prev.map((item, i) => 
           i === emptyIndex ? suggestion : item
         );
       } else {
-        // Add to the end
         return [...prev, suggestion];
       }
     });
@@ -193,7 +183,6 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
         sauces: await parseItems(sauces, 'sauce'),
       };
       
-      // Save ingredient data for future use
       saveIngredientData(parsedData);
       
       onDataSubmitted(parsedData);
@@ -217,20 +206,10 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     
     return (
       <div className="mb-3">
-        <div className="flex justify-between items-center mb-2">
+        <div className="mb-2">
           <h3 className="text-base font-medium">{label}</h3>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => handleAddItem(category, setter)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
         
-        {/* Suggestions Section */}
         {suggestedIngredients && (
           <div className="mb-4 bg-secondary/30 p-3 rounded-md">
             <p className="text-xs font-medium mb-2">Suggestions (click to add):</p>
@@ -301,6 +280,17 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
             </div>
           ))}
         </div>
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full border-dashed"
+          onClick={() => handleAddItem(category, setter)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add {singleName}
+        </Button>
       </div>
     );
   };
@@ -310,6 +300,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       <div className="text-sm mb-4 p-3 bg-accent rounded-lg">
         <p className="font-medium">Enter your preferred ingredients in each category:</p>
         <p className="text-xs text-muted-foreground mt-1">For proteins and vegetables, you can also select your preferred cooking method.</p>
+        <p className="text-xs text-muted-foreground mt-1"><strong>Important:</strong> Please include at least one item in each category for the best meal plan results.</p>
         {suggestedIngredients && (
           <div className="mt-2 flex flex-wrap gap-1">
             <span className="text-xs font-medium">Suggestions:</span>
@@ -360,4 +351,3 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
 };
 
 export default ManualIngredientForm;
-

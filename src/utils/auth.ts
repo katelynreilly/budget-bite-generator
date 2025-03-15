@@ -10,6 +10,7 @@ export interface User {
 
 const USER_KEY = 'mealPlanner_currentUser';
 const USERS_KEY = 'mealPlanner_users';
+const TEMP_PASSWORDS_KEY = 'mealPlanner_tempPasswords';
 
 // Type for storing users
 interface StoredUser {
@@ -18,6 +19,12 @@ interface StoredUser {
   password: string; // Hashed password
   salt: string; // Salt for password hashing
   created: string;
+}
+
+// Type for storing temporary password flags
+interface TempPasswordEntry {
+  username: string;
+  isTemporary: boolean;
 }
 
 // Get users from localStorage
@@ -34,6 +41,77 @@ const getUsers = (): StoredUser[] => {
 // Save users to localStorage
 const saveUsers = (users: StoredUser[]): void => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
+// Get temporary password flags from localStorage
+const getTempPasswords = (): TempPasswordEntry[] => {
+  try {
+    const tempPasswordsJson = localStorage.getItem(TEMP_PASSWORDS_KEY);
+    return tempPasswordsJson ? JSON.parse(tempPasswordsJson) : [];
+  } catch (error) {
+    console.error('Error retrieving temporary password flags:', error);
+    return [];
+  }
+};
+
+// Save temporary password flags to localStorage
+const saveTempPasswords = (entries: TempPasswordEntry[]): void => {
+  localStorage.setItem(TEMP_PASSWORDS_KEY, JSON.stringify(entries));
+};
+
+// Mark a password as temporary
+const markPasswordAsTemporary = (username: string): void => {
+  const tempPasswords = getTempPasswords();
+  
+  // Remove any existing entry for this user
+  const filteredEntries = tempPasswords.filter(entry => entry.username !== username);
+  
+  // Add the new entry
+  filteredEntries.push({
+    username,
+    isTemporary: true
+  });
+  
+  saveTempPasswords(filteredEntries);
+};
+
+// Mark a password as permanent
+const markPasswordAsPermanent = (username: string): void => {
+  const tempPasswords = getTempPasswords();
+  
+  // Remove any existing entry for this user
+  const filteredEntries = tempPasswords.filter(entry => entry.username !== username);
+  
+  // Add the new entry with isTemporary set to false
+  filteredEntries.push({
+    username,
+    isTemporary: false
+  });
+  
+  saveTempPasswords(filteredEntries);
+};
+
+// Check if a password is temporary
+export const isTemporaryPassword = async (username: string, password: string): Promise<boolean> => {
+  // First verify the password is correct
+  const users = getUsers();
+  const user = users.find(u => u.username === username);
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+  
+  const hashedPassword = await hashPassword(password, user.salt);
+  
+  if (hashedPassword !== user.password) {
+    throw new Error('Invalid credentials');
+  }
+  
+  // Then check if it's marked as temporary
+  const tempPasswords = getTempPasswords();
+  const entry = tempPasswords.find(e => e.username === username);
+  
+  return entry?.isTemporary === true;
 };
 
 // Generate a random salt for password hashing
@@ -75,6 +153,9 @@ export const createUser = async (username: string, password: string): Promise<Us
   users.push(newUser);
   saveUsers(users);
   
+  // Mark this password as permanent (not temporary)
+  markPasswordAsPermanent(username);
+  
   // Convert to User type and save current user
   const user: User = {
     id: newUser.id,
@@ -88,18 +169,36 @@ export const createUser = async (username: string, password: string): Promise<Us
 };
 
 // Login a user
-export const loginUser = async (username: string, password: string): Promise<User> => {
+export const loginUser = async (username: string, password: string, newPassword?: string): Promise<User> => {
   const users = getUsers();
-  const user = users.find(u => u.username === username);
+  const userIndex = users.findIndex(u => u.username === username);
   
-  if (!user) {
+  if (userIndex === -1) {
     throw new Error('Invalid username or password');
   }
   
+  const user = users[userIndex];
   const hashedPassword = await hashPassword(password, user.salt);
   
   if (hashedPassword !== user.password) {
     throw new Error('Invalid username or password');
+  }
+  
+  // If a new password is provided, update the user's password
+  if (newPassword) {
+    const salt = generateSalt();
+    const hashedNewPassword = await hashPassword(newPassword, salt);
+    
+    users[userIndex] = {
+      ...user,
+      password: hashedNewPassword,
+      salt,
+    };
+    
+    saveUsers(users);
+    
+    // Mark the new password as permanent
+    markPasswordAsPermanent(username);
   }
   
   // Convert to User type and save current user
@@ -117,9 +216,9 @@ export const loginUser = async (username: string, password: string): Promise<Use
 // Request password reminder
 export const requestPasswordReminder = async (username: string): Promise<string> => {
   const users = getUsers();
-  const user = users.find(u => u.username === username);
+  const userIndex = users.findIndex(u => u.username === username);
   
-  if (!user) {
+  if (userIndex === -1) {
     throw new Error('Username not found');
   }
   
@@ -135,10 +234,16 @@ export const requestPasswordReminder = async (username: string): Promise<string>
   const salt = generateSalt();
   const hashedPassword = await hashPassword(tempPassword, salt);
   
-  user.password = hashedPassword;
-  user.salt = salt;
+  users[userIndex] = {
+    ...users[userIndex],
+    password: hashedPassword,
+    salt,
+  };
   
   saveUsers(users);
+  
+  // Mark this password as temporary
+  markPasswordAsTemporary(username);
   
   // In a real app, we would send this password via email
   // For this demo, we'll just return it to be displayed to the user

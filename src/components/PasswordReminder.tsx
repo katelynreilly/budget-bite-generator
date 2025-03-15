@@ -17,7 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { requestPasswordReminder } from '@/utils/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { RefreshCw, Check } from 'lucide-react';
+import { RefreshCw, Check, ArrowRight } from 'lucide-react';
 
 type PasswordReminderProps = {
   open: boolean;
@@ -69,6 +69,11 @@ export function PasswordReminder({ open, onOpenChange }: PasswordReminderProps) 
     onOpenChange(false);
   }
   
+  function handleLoginWithTemp() {
+    // Close this dialog and allow user to log in with temp password
+    handleClose();
+  }
+  
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -99,12 +104,13 @@ export function PasswordReminder({ open, onOpenChange }: PasswordReminderProps) 
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Remember to change your password after logging in.
+                Remember to change your password after logging in. You'll be prompted to update it on your next login.
               </p>
             </div>
             
-            <Button className="w-full" onClick={handleClose}>
-              Close
+            <Button className="w-full" onClick={handleLoginWithTemp}>
+              Log in with temporary password
+              <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         ) : (

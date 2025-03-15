@@ -15,7 +15,8 @@ const USERS_KEY = 'mealPlanner_users';
 interface StoredUser {
   id: string;
   username: string;
-  password: string; // In a real app, this would be hashed
+  password: string; // Hashed password
+  salt: string; // Salt for password hashing
   created: string;
 }
 
@@ -35,8 +36,24 @@ const saveUsers = (users: StoredUser[]): void => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
+// Generate a random salt for password hashing
+const generateSalt = (): string => {
+  const array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+// Hash a password with a given salt
+const hashPassword = async (password: string, salt: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + salt);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 // Create a new user
-export const createUser = (username: string, password: string): User => {
+export const createUser = async (username: string, password: string): Promise<User> => {
   const users = getUsers();
   
   // Check if username already exists
@@ -44,10 +61,14 @@ export const createUser = (username: string, password: string): User => {
     throw new Error('Username already exists');
   }
   
+  const salt = generateSalt();
+  const hashedPassword = await hashPassword(password, salt);
+  
   const newUser: StoredUser = {
     id: `user_${Date.now()}`,
     username,
-    password,
+    password: hashedPassword,
+    salt,
     created: new Date().toISOString(),
   };
   
@@ -67,11 +88,17 @@ export const createUser = (username: string, password: string): User => {
 };
 
 // Login a user
-export const loginUser = (username: string, password: string): User => {
+export const loginUser = async (username: string, password: string): Promise<User> => {
   const users = getUsers();
-  const user = users.find(u => u.username === username && u.password === password);
+  const user = users.find(u => u.username === username);
   
   if (!user) {
+    throw new Error('Invalid username or password');
+  }
+  
+  const hashedPassword = await hashPassword(password, user.salt);
+  
+  if (hashedPassword !== user.password) {
     throw new Error('Invalid username or password');
   }
   

@@ -14,7 +14,7 @@ import {
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User, createUser, loginUser, getCurrentUser } from '@/utils/auth';
+import { User, createUser, loginUser } from '@/utils/auth';
 import { useToast } from '@/components/ui/use-toast';
 
 type AuthProps = {
@@ -30,6 +30,7 @@ const formSchema = z.object({
 
 export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
   const [isLogin, setIsLogin] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -41,17 +42,20 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
   });
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
       let user: User;
       
       if (isLogin) {
-        user = loginUser(values.username, values.password);
+        user = await loginUser(values.username, values.password);
         toast({
           title: "Welcome back!",
           description: `You've successfully logged in as ${user.username}`,
         });
       } else {
-        user = createUser(values.username, values.password);
+        user = await createUser(values.username, values.password);
         toast({
           title: "Account created",
           description: `Your account has been created and you're now logged in`,
@@ -66,6 +70,8 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
         description: (error as Error).message,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
   
@@ -112,14 +118,19 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
             />
             
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit">
-                {isLogin ? "Log in" : "Create account"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting 
+                  ? "Processing..." 
+                  : isLogin 
+                    ? "Log in" 
+                    : "Create account"}
               </Button>
               
               <Button 
                 type="button" 
                 variant="ghost" 
                 onClick={() => setIsLogin(!isLogin)}
+                disabled={isSubmitting}
               >
                 {isLogin ? "Need an account? Sign up" : "Already have an account? Log in"}
               </Button>

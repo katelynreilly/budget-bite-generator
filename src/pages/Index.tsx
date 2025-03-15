@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import ManualIngredientForm from '@/components/ManualIngredientForm';
@@ -25,7 +24,7 @@ const Index = () => {
   const [mealPlan, setMealPlan] = useState<MealPlanType | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [useFallbackData, setUseFallbackData] = useState(false);
-  const [inputMethod, setInputMethod] = useState<'upload' | 'manual'>('upload');
+  const [inputMethod, setInputMethod] = useState<'upload' | 'manual'>('manual');
 
   const handleDataParsed = (data: ParsedData) => {
     setIngredientData(data);
@@ -101,7 +100,7 @@ const Index = () => {
             <div className="text-center mb-12 animate-fade-in">
               <h2 className="text-3xl font-semibold mb-3">Create Your Monthly Meal Plan</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Upload your ingredients spreadsheet or manually enter them to generate a custom meal plan optimized for taste and budget.
+                Enter your ingredients or upload a spreadsheet to generate a custom meal plan optimized for taste and budget.
               </p>
               <div className="mt-2 flex items-center justify-center gap-1 text-sm text-primary">
                 <Calculator className="h-4 w-4" />
@@ -111,15 +110,6 @@ const Index = () => {
             
             <div className="mb-8 flex justify-center gap-4">
               <Button
-                variant={inputMethod === 'upload' ? 'default' : 'outline'}
-                onClick={() => setInputMethod('upload')}
-                className="gap-2"
-              >
-                <FileUp className="h-4 w-4" />
-                <span>Upload Spreadsheet</span>
-              </Button>
-              
-              <Button
                 variant={inputMethod === 'manual' ? 'default' : 'outline'}
                 onClick={() => setInputMethod('manual')}
                 className="gap-2"
@@ -127,10 +117,26 @@ const Index = () => {
                 <FormInput className="h-4 w-4" />
                 <span>Manual Entry</span>
               </Button>
+              
+              <Button
+                variant={inputMethod === 'upload' ? 'default' : 'outline'}
+                onClick={() => setInputMethod('upload')}
+                className="gap-2"
+              >
+                <FileUp className="h-4 w-4" />
+                <span>Upload Spreadsheet</span>
+              </Button>
             </div>
             
             <div className="space-y-8">
-              {inputMethod === 'upload' ? (
+              {inputMethod === 'manual' ? (
+                <div className="border rounded-lg p-6">
+                  <ManualIngredientForm
+                    onDataSubmitted={handleDataParsed}
+                    isLoading={isGenerating}
+                  />
+                </div>
+              ) : (
                 <>
                   <FileUpload 
                     onDataParsed={handleDataParsed} 
@@ -161,13 +167,6 @@ const Index = () => {
                     </div>
                   </div>
                 </>
-              ) : (
-                <div className="border rounded-lg p-6">
-                  <ManualIngredientForm
-                    onDataSubmitted={handleDataParsed}
-                    isLoading={isGenerating}
-                  />
-                </div>
               )}
               
               {isGenerating && (

@@ -14,7 +14,8 @@ import {
   ShoppingCart,
   FileUp,
   FileDown,
-  FormInput
+  FormInput,
+  Calculator
 } from 'lucide-react';
 import { downloadTemplateFile } from '@/utils/templateGenerator';
 
@@ -102,6 +103,10 @@ const Index = () => {
               <p className="text-muted-foreground max-w-md mx-auto">
                 Upload your ingredients spreadsheet or manually enter them to generate a custom meal plan optimized for taste and budget.
               </p>
+              <div className="mt-2 flex items-center justify-center gap-1 text-sm text-primary">
+                <Calculator className="h-4 w-4" />
+                <span>Costs are automatically estimated</span>
+              </div>
             </div>
             
             <div className="mb-8 flex justify-center gap-4">

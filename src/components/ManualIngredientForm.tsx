@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
+import { estimateIngredientCost } from '@/utils/costEstimator';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
@@ -14,7 +15,6 @@ interface ManualIngredientFormProps {
 
 interface IngredientItem {
   name: string;
-  cost: string;
   flavorProfile: string;
 }
 
@@ -22,10 +22,10 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   onDataSubmitted, 
   isLoading 
 }) => {
-  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
-  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
-  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
-  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '', cost: '', flavorProfile: '' }]);
+  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
+  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
+  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
+  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
   
   const [expandedSections, setExpandedSections] = useState({
     proteins: true,
@@ -45,7 +45,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
-    setter(prev => [...prev, { name: '', cost: '', flavorProfile: '' }]);
+    setter(prev => [...prev, { name: '', flavorProfile: '' }]);
   };
 
   const handleRemoveItem = (
@@ -70,29 +70,41 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const parseItems = (items: IngredientItem[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
-      return items
-        .filter(item => item.name.trim() !== '')
-        .map((item, index) => ({
-          id: `manual-${category}-${index}`,
-          name: item.name.trim(),
-          category,
-          cost: parseFloat(item.cost) || 0,
-          flavorProfile: item.flavorProfile.split(',').map(f => f.trim()),
-        }));
+    const parseItems = async (items: IngredientItem[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
+      const parsedItems = [];
+      
+      for (const item of items) {
+        if (item.name.trim() !== '') {
+          const estimatedCost = await estimateIngredientCost(item.name.trim(), category);
+          
+          parsedItems.push({
+            id: `manual-${category}-${parsedItems.length}`,
+            name: item.name.trim(),
+            category,
+            cost: estimatedCost,
+            flavorProfile: item.flavorProfile.split(',').map(f => f.trim()),
+          });
+        }
+      }
+      
+      return parsedItems;
     };
     
-    const parsedData: ParsedData = {
-      proteins: parseItems(proteins, 'protein'),
-      grains: parseItems(grains, 'grain'),
-      vegetables: parseItems(vegetables, 'vegetable'),
-      sauces: parseItems(sauces, 'sauce'),
-    };
-    
-    onDataSubmitted(parsedData);
+    try {
+      const parsedData: ParsedData = {
+        proteins: await parseItems(proteins, 'protein'),
+        grains: await parseItems(grains, 'grain'),
+        vegetables: await parseItems(vegetables, 'vegetable'),
+        sauces: await parseItems(sauces, 'sauce'),
+      };
+      
+      onDataSubmitted(parsedData);
+    } catch (error) {
+      console.error('Error estimating costs:', error);
+    }
   };
 
   const renderIngredientFields = (
@@ -148,19 +160,6 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
                   </div>
                   
                   <div>
-                    <Label htmlFor={`${category}-${index}-cost`}>Cost ($ per unit)</Label>
-                    <Input
-                      id={`${category}-${index}-cost`}
-                      value={item.cost}
-                      onChange={(e) => handleItemChange(category, index, 'cost', e.target.value, setter)}
-                      placeholder="0.00"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-                  
-                  <div>
                     <Label htmlFor={`${category}-${index}-flavor`}>Flavor Profile</Label>
                     <Textarea
                       id={`${category}-${index}-flavor`}
@@ -195,7 +194,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
         <p className="mb-2 font-medium">Instructions:</p>
         <ul className="list-disc list-inside space-y-1">
           <li>Add at least one item in each category</li>
-          <li>Enter the cost as a decimal number (e.g., 3.99)</li>
+          <li>The app will automatically estimate costs for ingredients</li>
           <li>For flavor profiles, enter comma-separated values (e.g., sweet, tangy, spicy)</li>
         </ul>
       </div>

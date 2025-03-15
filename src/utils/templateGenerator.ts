@@ -5,21 +5,21 @@ export const generateTemplateFile = (): Blob => {
   // Create a new workbook
   const wb = XLSX.utils.book_new();
   
-  // Define the template data with headers and example rows
+  // Define the template data with headers and example rows (removing cost column)
   const data = [
-    ['Name', 'Category', 'Cost', 'FlavorProfile', 'Attributes'],
-    ['Chicken Breast', 'protein', '3.99', 'mild, savory', 'lean, high-protein'],
-    ['Ground Beef', 'protein', '4.99', 'rich, savory', 'versatile'],
-    ['Tofu', 'protein', '2.49', 'mild, neutral', 'vegetarian'],
-    ['Brown Rice', 'grain', '0.99', 'nutty, mild', 'whole-grain'],
-    ['Quinoa', 'grain', '3.99', 'nutty, mild', 'high-protein'],
-    ['Pasta', 'grain', '1.29', 'mild, neutral', 'versatile'],
-    ['Broccoli', 'vegetable', '1.99', 'earthy, mild', 'cruciferous'],
-    ['Bell Peppers', 'vegetable', '1.49', 'sweet, fresh', 'colorful'],
-    ['Spinach', 'vegetable', '2.99', 'earthy, mild', 'leafy-green'],
-    ['Tomato Sauce', 'sauce', '1.99', 'tangy, savory', 'acidic'],
-    ['Soy Sauce', 'sauce', '2.49', 'salty, umami', 'fermented'],
-    ['Pesto', 'sauce', '3.99', 'herby, savory', 'italian'],
+    ['Name', 'Category', 'FlavorProfile', 'Attributes'],
+    ['Chicken Breast', 'protein', 'mild, savory', 'lean, high-protein'],
+    ['Ground Beef', 'protein', 'rich, savory', 'versatile'],
+    ['Tofu', 'protein', 'mild, neutral', 'vegetarian'],
+    ['Brown Rice', 'grain', 'nutty, mild', 'whole-grain'],
+    ['Quinoa', 'grain', 'nutty, mild', 'high-protein'],
+    ['Pasta', 'grain', 'mild, neutral', 'versatile'],
+    ['Broccoli', 'vegetable', 'earthy, mild', 'cruciferous'],
+    ['Bell Peppers', 'vegetable', 'sweet, fresh', 'colorful'],
+    ['Spinach', 'vegetable', 'earthy, mild', 'leafy-green'],
+    ['Tomato Sauce', 'sauce', 'tangy, savory', 'acidic'],
+    ['Soy Sauce', 'sauce', 'salty, umami', 'fermented'],
+    ['Pesto', 'sauce', 'herby, savory', 'italian'],
   ];
   
   // Create a worksheet
@@ -29,7 +29,6 @@ export const generateTemplateFile = (): Blob => {
   const colWidths = [
     { wch: 15 }, // Name
     { wch: 10 }, // Category
-    { wch: 8 },  // Cost
     { wch: 20 }, // FlavorProfile
     { wch: 20 }, // Attributes
   ];

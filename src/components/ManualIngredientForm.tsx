@@ -162,12 +162,12 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
               {needsCookingMethod && (
                 <div className="w-[130px]">
                   <Select
-                    value={item.cookingMethod || ""}
+                    value={item.cookingMethod || "none"}
                     onValueChange={(value) => 
                       handleCookingMethodChange(
                         category as 'proteins' | 'vegetables', 
                         index, 
-                        value, 
+                        value === "none" ? "" : value, 
                         setter
                       )
                     }
@@ -176,7 +176,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
                       <SelectValue placeholder="Cooking method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No preference</SelectItem>
+                      <SelectItem value="none">No preference</SelectItem>
                       {cookingMethods.map((method) => (
                         <SelectItem key={method} value={method}>
                           {method}

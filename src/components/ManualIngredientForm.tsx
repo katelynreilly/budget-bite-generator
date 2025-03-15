@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getSavedIngredientData, saveIngredientData } from '@/utils/storage';
 import { suggestedIngredients } from '@/pages/Index';
 import { Badge } from '@/components/ui/badge';
+import { cleanIngredientName } from '@/utils/nameGenerator';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,7 +55,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     if (savedData) {
       const parseToFormItems = (items: any[], cookingMethodNeeded: boolean) => {
         return items.map(item => {
-          const name = item.name;
+          const name = cleanIngredientName(item.name);
           let cookingMethod = '';
           
           if (cookingMethodNeeded && item.attributes && item.attributes.length > 0) {
@@ -157,13 +158,11 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
           const estimatedCost = await estimateIngredientCost(item.name.trim(), category);
           const flavorProfile = estimateFlavorProfile(item.name.trim(), category);
           
-          const name = item.cookingMethod 
-            ? `${item.cookingMethod} ${item.name.trim()}`
-            : item.name.trim();
+          const cleanName = cleanIngredientName(item.name.trim());
           
           parsedItems.push({
             id: `manual-${category}-${parsedItems.length}`,
-            name,
+            name: cleanName,
             category,
             cost: estimatedCost,
             flavorProfile,

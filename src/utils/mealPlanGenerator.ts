@@ -70,13 +70,26 @@ const isMealCompatible = (
 };
 
 const generateMealName = (meal: Partial<Meal>): string => {
-  const adjectives = ['Simple', 'Hearty', 'Fresh', 'Homestyle', 'Classic', 'Vibrant', 'Quick'];
-  const methods = ['Roasted', 'Pan-Seared', 'Grilled', 'Sautéed', 'Baked', 'Stir-Fried'];
+  const proteinName = meal.protein?.name || '';
+  const vegetableName = meal.vegetable?.name || '';
+  const grainName = meal.grain?.name || '';
   
-  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const randomMethod = methods[Math.floor(Math.random() * methods.length)];
+  const proteinAlreadyHasCookingMethod = proteinName.includes('Grilled') || 
+    proteinName.includes('Baked') || 
+    proteinName.includes('Air-fried') || 
+    proteinName.includes('Pan-seared') || 
+    proteinName.includes('Slow-cooked') || 
+    proteinName.includes('Steamed') || 
+    proteinName.includes('Poached') || 
+    proteinName.includes('Stir-fried') || 
+    proteinName.includes('Roasted') || 
+    proteinName.includes('Sautéed');
   
-  return `${randomMethod} ${meal.protein?.name} with ${meal.sauce?.name} ${meal.vegetable?.name} and ${meal.grain?.name}`;
+  const finalProteinName = proteinAlreadyHasCookingMethod 
+    ? proteinName 
+    : `${['Roasted', 'Grilled', 'Pan-Seared'][Math.floor(Math.random() * 3)]} ${proteinName}`;
+  
+  return `${finalProteinName} with ${meal.sauce?.name} ${vegetableName} and ${grainName}`;
 };
 
 const generateMeal = (

@@ -5,7 +5,7 @@ import ManualIngredientForm from '@/components/ManualIngredientForm';
 import MealPlan from '@/components/MealPlan';
 import MealPlanLibrary, { SavedMealPlan } from '@/components/MealPlanLibrary';
 import { ParsedData, getFallbackData } from '@/utils/fileParser';
-import { MealPlan as MealPlanType, generateMealPlan } from '@/utils/mealPlanGenerator';
+import { MealPlan as MealPlanType, generateMealPlan, Meal } from '@/utils/mealPlanGenerator';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,7 +20,11 @@ import {
   Library
 } from 'lucide-react';
 import { downloadTemplateFile } from '@/utils/templateGenerator';
-import { getSavedMealPlans, deleteSavedMealPlan } from '@/utils/storage';
+import { 
+  getSavedMealPlans, 
+  deleteSavedMealPlan,
+  getFavoriteRecipes
+} from '@/utils/storage';
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -31,10 +35,12 @@ const Index = () => {
   const [inputMethod, setInputMethod] = useState<'upload' | 'manual'>('manual');
   const [savedPlans, setSavedPlans] = useState<SavedMealPlan[]>([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Meal[]>([]);
 
-  // Load saved meal plans on component mount
+  // Load saved meal plans and favorite recipes on component mount
   useEffect(() => {
     setSavedPlans(getSavedMealPlans());
+    setFavoriteRecipes(getFavoriteRecipes());
   }, []);
 
   const handleDataParsed = (data: ParsedData) => {
@@ -58,6 +64,7 @@ const Index = () => {
       const newPlan = generateMealPlan(data, {
         weeksCount: 4,
         mealsPerWeek: 4,
+        favoriteRecipes: favoriteRecipes
       });
       
       setMealPlan(newPlan);

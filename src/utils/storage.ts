@@ -1,11 +1,12 @@
 
-import { MealPlan } from './mealPlanGenerator';
+import { MealPlan, Meal } from './mealPlanGenerator';
 import { ParsedData } from './fileParser';
 import { SavedMealPlan } from '@/components/MealPlanLibrary';
 
 // Keys for localStorage
 const SAVED_MEAL_PLANS_KEY = 'mealPlanner_savedPlans';
 const SAVED_INGREDIENTS_KEY = 'mealPlanner_savedIngredients';
+const FAVORITE_RECIPES_KEY = 'mealPlanner_favoriteRecipes';
 
 // Save a meal plan to localStorage
 export const saveMealPlan = (plan: MealPlan, name: string): SavedMealPlan => {
@@ -55,4 +56,38 @@ export const getSavedIngredientData = (): ParsedData | null => {
     console.error('Error retrieving saved ingredient data:', error);
     return null;
   }
+};
+
+// Save a recipe as a favorite
+export const saveFavoriteRecipe = (recipe: Meal): void => {
+  const favorites = getFavoriteRecipes();
+  
+  // Only add if it's not already in favorites
+  if (!favorites.some(fav => fav.id === recipe.id)) {
+    favorites.push(recipe);
+    localStorage.setItem(FAVORITE_RECIPES_KEY, JSON.stringify(favorites));
+  }
+};
+
+// Remove a recipe from favorites
+export const removeFavoriteRecipe = (recipeId: string): void => {
+  const favorites = getFavoriteRecipes().filter(recipe => recipe.id !== recipeId);
+  localStorage.setItem(FAVORITE_RECIPES_KEY, JSON.stringify(favorites));
+};
+
+// Get all favorite recipes
+export const getFavoriteRecipes = (): Meal[] => {
+  try {
+    const recipesJson = localStorage.getItem(FAVORITE_RECIPES_KEY);
+    return recipesJson ? JSON.parse(recipesJson) : [];
+  } catch (error) {
+    console.error('Error retrieving favorite recipes:', error);
+    return [];
+  }
+};
+
+// Check if a recipe is a favorite
+export const isRecipeFavorite = (recipeId: string): boolean => {
+  const favorites = getFavoriteRecipes();
+  return favorites.some(recipe => recipe.id === recipeId);
 };

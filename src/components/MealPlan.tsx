@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Meal, WeeklyPlan, MealPlan as MealPlanType, generateShoppingList } from '@/utils/mealPlanGenerator';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets, Library, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets, Library, Save, Heart } from 'lucide-react';
 import ShoppingList from './ShoppingList';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { saveMealPlan } from '@/utils/storage';
+import { saveMealPlan, saveFavoriteRecipe, removeFavoriteRecipe, isRecipeFavorite } from '@/utils/storage';
 
 interface MealPlanProps {
   mealPlan: MealPlanType;
@@ -19,8 +19,12 @@ interface MealPlanProps {
 }
 
 const MealCard = ({ meal }: { meal: Meal }) => {
-  const imageId = parseInt(meal.id.replace(/\D/g, ''), 10) % 15 + 1;
-  const imageUrl = `https://source.unsplash.com/collection/4318479/600x400?sig=${imageId}`;
+  const { toast } = useToast();
+  const [isFavorite, setIsFavorite] = useState(false);
+  
+  useEffect(() => {
+    setIsFavorite(isRecipeFavorite(meal.id));
+  }, [meal.id]);
   
   const gradientIndex = parseInt(meal.id.replace(/\D/g, ''), 10) % 5;
   const gradients = [
@@ -33,17 +37,37 @@ const MealCard = ({ meal }: { meal: Meal }) => {
   
   const gradient = gradients[gradientIndex];
   
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (isFavorite) {
+      removeFavoriteRecipe(meal.id);
+      setIsFavorite(false);
+      toast({
+        title: "Recipe Removed",
+        description: "Recipe removed from your favorites."
+      });
+    } else {
+      saveFavoriteRecipe(meal);
+      setIsFavorite(true);
+      toast({
+        title: "Recipe Saved",
+        description: "Recipe saved to your favorites. It will influence future meal plans."
+      });
+    }
+  };
+  
   return (
-    <Card className={`meal-card overflow-hidden transition-all hover:shadow-lg ${gradient} border-0`}>
-      <div className="overflow-hidden rounded-t-xl">
-        <img 
-          src={imageUrl} 
-          alt={meal.name} 
-          className="meal-image w-full h-48 object-cover"
-          loading="lazy"
-        />
-      </div>
+    <Card className={`meal-card overflow-hidden transition-all hover:shadow-lg ${gradient} border-0 relative`}>
       <CardContent className="p-5">
+        <button 
+          onClick={handleToggleFavorite}
+          className={`absolute top-3 right-3 p-2 rounded-full transition-colors ${isFavorite ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+        </button>
+
         <h3 className="font-semibold text-lg leading-tight mb-3">{meal.name}</h3>
         
         <div className="grid grid-cols-2 gap-x-3 gap-y-2 mb-4">

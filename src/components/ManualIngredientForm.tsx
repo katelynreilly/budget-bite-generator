@@ -7,6 +7,7 @@ import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
@@ -21,24 +22,13 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   onDataSubmitted, 
   isLoading 
 }) => {
-  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '' }]);
-  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '' }]);
-  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '' }]);
-  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '' }]);
+  // Initialize with 5 empty items in each category
+  const createEmptyItems = () => Array(5).fill({ name: '' });
   
-  const [expandedSections, setExpandedSections] = useState({
-    proteins: true,
-    grains: true,
-    vegetables: true,
-    sauces: true
-  });
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
+  const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
+  const [vegetables, setVegetables] = useState<IngredientItem[]>(createEmptyItems());
+  const [sauces, setSauces] = useState<IngredientItem[]>(createEmptyItems());
 
   const handleAddItem = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
@@ -110,87 +100,87 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     items: IngredientItem[],
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>,
-    isExpanded: boolean
+    label: string
   ) => {
-    const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
     const singleName = category === 'proteins' ? 'Protein' : 
-                      category === 'grains' ? 'Grain' : 
-                      category === 'vegetables' ? 'Vegetable' : 'Sauce';
+                        category === 'grains' ? 'Grain' : 
+                        category === 'vegetables' ? 'Vegetable' : 'Sauce';
     
     return (
-      <div className="mb-6 border rounded-lg p-4">
-        <div 
-          className="flex items-center justify-between cursor-pointer mb-3"
-          onClick={() => toggleSection(category)}
-        >
-          <h3 className="text-lg font-medium">{categoryTitle}</h3>
-          <Button variant="ghost" size="sm" className="p-1 h-auto">
-            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-base font-medium">{label}</h3>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => handleAddItem(category, setter)}
+          >
+            <Plus className="h-4 w-4" />
           </Button>
         </div>
         
-        {isExpanded && (
-          <>
-            {items.map((item, index) => (
-              <div key={index} className="mb-4 p-3 bg-secondary/30 rounded-md">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">{singleName} #{index + 1}</span>
-                  {items.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleRemoveItem(category, index, setter)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="grid gap-3">
-                  <div>
-                    <Label htmlFor={`${category}-${index}-name`}>{singleName} Name</Label>
-                    <Input
-                      id={`${category}-${index}-name`}
-                      value={item.name}
-                      onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
-                      placeholder={`Enter ${singleName.toLowerCase()} name`}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full mt-2"
-              onClick={() => handleAddItem(category, setter)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add {singleName}
-            </Button>
-          </>
-        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          {items.map((item, index) => (
+            <div key={index} className="flex items-center gap-2 bg-secondary/20 rounded-md p-2">
+              <Input
+                value={item.name}
+                onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
+                placeholder={`${singleName} ${index + 1}`}
+                className="h-8 text-sm"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 shrink-0"
+                onClick={() => handleRemoveItem(category, index, setter)}
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
   return (
     <form onSubmit={handleSubmit} className="animate-fade-in">
-      <div className="text-sm mb-4 p-4 bg-accent rounded-lg">
-        <p className="mb-2 font-medium">Instructions:</p>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Add at least one item in each category</li>
-          <li>Just enter the names - we'll estimate costs and flavor profiles automatically</li>
-          <li>The more specific you are with ingredient names, the better our estimates will be</li>
-        </ul>
+      <div className="text-sm mb-4 p-3 bg-accent rounded-lg">
+        <p className="font-medium">Enter your preferred ingredients in each category:</p>
+        <p className="text-xs text-muted-foreground mt-1">We'll automatically estimate costs and flavor profiles for you.</p>
       </div>
       
-      {renderIngredientFields(proteins, 'proteins', setProteins, expandedSections.proteins)}
-      {renderIngredientFields(grains, 'grains', setGrains, expandedSections.grains)}
-      {renderIngredientFields(vegetables, 'vegetables', setVegetables, expandedSections.vegetables)}
-      {renderIngredientFields(sauces, 'sauces', setSauces, expandedSections.sauces)}
+      <Accordion type="single" collapsible defaultValue="proteins" className="space-y-2">
+        <AccordionItem value="proteins" className="border rounded-lg px-3 py-2">
+          <AccordionTrigger className="py-2">Proteins</AccordionTrigger>
+          <AccordionContent>
+            {renderIngredientFields(proteins, 'proteins', setProteins, 'Proteins')}
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="grains" className="border rounded-lg px-3 py-2">
+          <AccordionTrigger className="py-2">Grains</AccordionTrigger>
+          <AccordionContent>
+            {renderIngredientFields(grains, 'grains', setGrains, 'Grains')}
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="vegetables" className="border rounded-lg px-3 py-2">
+          <AccordionTrigger className="py-2">Vegetables</AccordionTrigger>
+          <AccordionContent>
+            {renderIngredientFields(vegetables, 'vegetables', setVegetables, 'Vegetables')}
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="sauces" className="border rounded-lg px-3 py-2">
+          <AccordionTrigger className="py-2">Sauces</AccordionTrigger>
+          <AccordionContent>
+            {renderIngredientFields(sauces, 'sauces', setSauces, 'Sauces')}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
       
       <Button 
         type="submit" 

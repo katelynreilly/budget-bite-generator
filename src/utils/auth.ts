@@ -114,6 +114,37 @@ export const loginUser = async (username: string, password: string): Promise<Use
   return loggedInUser;
 };
 
+// Request password reminder
+export const requestPasswordReminder = async (username: string): Promise<string> => {
+  const users = getUsers();
+  const user = users.find(u => u.username === username);
+  
+  if (!user) {
+    throw new Error('Username not found');
+  }
+  
+  // Generate a temporary password
+  const tempPassword = Array.from(
+    { length: 8 },
+    () => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[
+      Math.floor(Math.random() * 62)
+    ]
+  ).join('');
+  
+  // Update the user's password with the temporary one
+  const salt = generateSalt();
+  const hashedPassword = await hashPassword(tempPassword, salt);
+  
+  user.password = hashedPassword;
+  user.salt = salt;
+  
+  saveUsers(users);
+  
+  // In a real app, we would send this password via email
+  // For this demo, we'll just return it to be displayed to the user
+  return tempPassword;
+};
+
 // Get current user
 export const getCurrentUser = (): User | null => {
   try {

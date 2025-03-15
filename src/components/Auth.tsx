@@ -16,6 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { User, createUser, loginUser } from '@/utils/auth';
 import { useToast } from '@/components/ui/use-toast';
+import { PasswordReminder } from './PasswordReminder';
 
 type AuthProps = {
   onAuthSuccess: (user: User) => void;
@@ -31,6 +32,7 @@ const formSchema = z.object({
 export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordReminderOpen, setIsPasswordReminderOpen] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -75,69 +77,95 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
     }
   }
   
+  const handleOpenPasswordReminder = () => {
+    setIsPasswordReminderOpen(true);
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{isLogin ? "Log in" : "Create an account"}</DialogTitle>
-          <DialogDescription>
-            {isLogin 
-              ? "Enter your username and password to access your meal plans" 
-              : "Create a new account to start planning your meals"}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Enter password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? "Processing..." 
-                  : isLogin 
-                    ? "Log in" 
-                    : "Create account"}
-              </Button>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{isLogin ? "Log in" : "Create an account"}</DialogTitle>
+            <DialogDescription>
+              {isLogin 
+                ? "Enter your username and password to access your meal plans" 
+                : "Create a new account to start planning your meals"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setIsLogin(!isLogin)}
-                disabled={isSubmitting}
-              >
-                {isLogin ? "Need an account? Sign up" : "Already have an account? Log in"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Enter password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex flex-col gap-2 pt-2">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting 
+                    ? "Processing..." 
+                    : isLogin 
+                      ? "Log in" 
+                      : "Create account"}
+                </Button>
+                
+                <div className="flex justify-between items-center mt-1">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() => setIsLogin(!isLogin)}
+                    disabled={isSubmitting}
+                    className="text-sm p-0 h-auto"
+                  >
+                    {isLogin ? "Need an account? Sign up" : "Already have an account? Log in"}
+                  </Button>
+                  
+                  {isLogin && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={handleOpenPasswordReminder}
+                      disabled={isSubmitting}
+                      className="text-sm p-0 h-auto"
+                    >
+                      Forgot password?
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      <PasswordReminder 
+        open={isPasswordReminderOpen} 
+        onOpenChange={setIsPasswordReminderOpen} 
+      />
+    </>
   );
 }

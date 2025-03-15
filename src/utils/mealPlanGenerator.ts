@@ -113,34 +113,104 @@ const generateMeal = (
   return meal;
 };
 
-// Generate 4 meals for a week, ensuring they're compatible and under budget
+// Calculate an optimization score to prioritize reusing ingredients
+const calculateOptimizationScore = (
+  ingredient: Ingredient,
+  usedIngredients: Map<string, number>,
+  weeklyUsedIngredients: Set<string>
+): number => {
+  // Base score - initially neutral
+  let score = 0;
+  
+  // Prioritize ingredients that have been used in other meals this week
+  // but not too many times (avoid repetition)
+  if (usedIngredients.has(ingredient.id)) {
+    const usageCount = usedIngredients.get(ingredient.id) || 0;
+    
+    // If used 1-2 times, boost the score (ideal reuse)
+    if (usageCount >= 1 && usageCount <= 2) {
+      score += 10;
+    } 
+    // If used too many times already, reduce score (avoid overuse)
+    else if (usageCount > 2) {
+      score -= 5 * (usageCount - 2); // Progressive penalty for overuse
+    }
+  } 
+  // Small bonus for totally new ingredients to maintain variety
+  else {
+    score += 2;
+  }
+  
+  // Penalize ingredients already used this week in this specific meal slot
+  if (weeklyUsedIngredients.has(ingredient.id)) {
+    score -= 15;
+  }
+  
+  return score;
+};
+
+// Generate 4 meals for a week, ensuring they're compatible and optimized for shopping
 const generateWeeklyMeals = (
   data: ParsedData,
   weekNumber: number,
+  usedIngredients: Map<string, number>,
   budgetPerWeek?: number
 ): WeeklyPlan => {
   const meals: Meal[] = [];
-  const usedIngredients = new Set<string>();
+  const weeklyUsedIngredients = new Map<string, Set<string>>();
   
-  // Try to use different ingredients for variety
+  // Initialize sets for tracking ingredient usage by type
+  ['protein', 'grain', 'vegetable', 'sauce'].forEach(type => {
+    weeklyUsedIngredients.set(type, new Set<string>());
+  });
+  
+  // Try to use different ingredients for variety within this week
   for (let i = 0; i < 4; i++) {
     let attempts = 0;
     let foundCompatibleMeal = false;
     let meal: Meal | null = null;
     
     while (!foundCompatibleMeal && attempts < 20) {
-      // Randomly select ingredients
-      const protein = data.proteins[Math.floor(Math.random() * data.proteins.length)];
-      const grain = data.grains[Math.floor(Math.random() * data.grains.length)];
-      const vegetable = data.vegetables[Math.floor(Math.random() * data.vegetables.length)];
-      const sauce = data.sauces[Math.floor(Math.random() * data.sauces.length)];
+      // Get used ingredient sets for each type
+      const usedProteins = weeklyUsedIngredients.get('protein') || new Set<string>();
+      const usedGrains = weeklyUsedIngredients.get('grain') || new Set<string>();
+      const usedVegetables = weeklyUsedIngredients.get('vegetable') || new Set<string>();
+      const usedSauces = weeklyUsedIngredients.get('sauce') || new Set<string>();
       
-      // Check if we've already used these ingredients too much this week
-      const mealKey = `${protein.id}-${grain.id}-${vegetable.id}-${sauce.id}`;
-      if (usedIngredients.has(mealKey)) {
-        attempts++;
-        continue;
-      }
+      // Score and sort ingredients to prioritize reuse while maintaining variety
+      const scoredProteins = data.proteins.map(protein => ({
+        ingredient: protein,
+        score: calculateOptimizationScore(protein, usedIngredients, usedProteins)
+      })).sort((a, b) => b.score - a.score);
+      
+      const scoredGrains = data.grains.map(grain => ({
+        ingredient: grain,
+        score: calculateOptimizationScore(grain, usedIngredients, usedGrains)
+      })).sort((a, b) => b.score - a.score);
+      
+      const scoredVegetables = data.vegetables.map(vegetable => ({
+        ingredient: vegetable,
+        score: calculateOptimizationScore(vegetable, usedIngredients, usedVegetables)
+      })).sort((a, b) => b.score - a.score);
+      
+      const scoredSauces = data.sauces.map(sauce => ({
+        ingredient: sauce,
+        score: calculateOptimizationScore(sauce, usedIngredients, usedSauces)
+      })).sort((a, b) => b.score - a.score);
+      
+      // Take the top ingredients but introduce some randomness
+      // to avoid always picking the same top-scored items
+      const getRandomTopIngredient = <T extends { score: number }>(items: T[]): T => {
+        // Take from top 3 scoring ingredients
+        const topCount = Math.min(3, items.length);
+        const randomIndex = Math.floor(Math.random() * topCount);
+        return items[randomIndex];
+      };
+      
+      const protein = getRandomTopIngredient(scoredProteins).ingredient;
+      const grain = getRandomTopIngredient(scoredGrains).ingredient;
+      const vegetable = getRandomTopIngredient(scoredVegetables).ingredient;
+      const sauce = getRandomTopIngredient(scoredSauces).ingredient;
       
       // Check if ingredients go well together
       if (isMealCompatible(protein, grain, vegetable, sauce)) {
@@ -154,7 +224,18 @@ const generateWeeklyMeals = (
         }
         
         foundCompatibleMeal = true;
-        usedIngredients.add(mealKey);
+        
+        // Update used ingredients counts globally
+        [protein, grain, vegetable, sauce].forEach(ingredient => {
+          const currentCount = usedIngredients.get(ingredient.id) || 0;
+          usedIngredients.set(ingredient.id, currentCount + 1);
+        });
+        
+        // Mark as used for this week to avoid too much repetition in the same week
+        weeklyUsedIngredients.get('protein')?.add(protein.id);
+        weeklyUsedIngredients.get('grain')?.add(grain.id);
+        weeklyUsedIngredients.get('vegetable')?.add(vegetable.id);
+        weeklyUsedIngredients.get('sauce')?.add(sauce.id);
       }
       
       attempts++;
@@ -163,13 +244,40 @@ const generateWeeklyMeals = (
     if (meal) {
       meals.push(meal);
     } else {
-      // If we couldn't find a compatible meal after many attempts, just pick random ingredients
-      const protein = data.proteins[Math.floor(Math.random() * data.proteins.length)];
-      const grain = data.grains[Math.floor(Math.random() * data.grains.length)];
-      const vegetable = data.vegetables[Math.floor(Math.random() * data.vegetables.length)];
-      const sauce = data.sauces[Math.floor(Math.random() * data.sauces.length)];
+      // Fallback: if we couldn't find a compatible meal with optimization,
+      // just pick random ingredients that are compatible
+      let fallbackFound = false;
+      let fallbackAttempts = 0;
       
-      meals.push(generateMeal(protein, grain, vegetable, sauce));
+      while (!fallbackFound && fallbackAttempts < 10) {
+        const protein = data.proteins[Math.floor(Math.random() * data.proteins.length)];
+        const grain = data.grains[Math.floor(Math.random() * data.grains.length)];
+        const vegetable = data.vegetables[Math.floor(Math.random() * data.vegetables.length)];
+        const sauce = data.sauces[Math.floor(Math.random() * data.sauces.length)];
+        
+        if (isMealCompatible(protein, grain, vegetable, sauce)) {
+          meals.push(generateMeal(protein, grain, vegetable, sauce));
+          fallbackFound = true;
+          
+          // Update used ingredients counts
+          [protein, grain, vegetable, sauce].forEach(ingredient => {
+            const currentCount = usedIngredients.get(ingredient.id) || 0;
+            usedIngredients.set(ingredient.id, currentCount + 1);
+          });
+        }
+        
+        fallbackAttempts++;
+      }
+      
+      // Last resort
+      if (!fallbackFound) {
+        const protein = data.proteins[Math.floor(Math.random() * data.proteins.length)];
+        const grain = data.grains[Math.floor(Math.random() * data.grains.length)];
+        const vegetable = data.vegetables[Math.floor(Math.random() * data.vegetables.length)];
+        const sauce = data.sauces[Math.floor(Math.random() * data.sauces.length)];
+        
+        meals.push(generateMeal(protein, grain, vegetable, sauce));
+      }
     }
   }
   
@@ -191,8 +299,11 @@ export const generateMealPlan = (
   const weeksCount = options?.weeksCount || 4; // Default to 4 weeks
   const weeks: WeeklyPlan[] = [];
   
+  // Track used ingredients across all weeks to optimize the shopping list
+  const usedIngredients = new Map<string, number>();
+  
   for (let weekNumber = 1; weekNumber <= weeksCount; weekNumber++) {
-    const weeklyPlan = generateWeeklyMeals(data, weekNumber, options?.budgetPerWeek);
+    const weeklyPlan = generateWeeklyMeals(data, weekNumber, usedIngredients, options?.budgetPerWeek);
     weeks.push(weeklyPlan);
   }
   

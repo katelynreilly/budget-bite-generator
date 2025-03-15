@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Meal, WeeklyPlan, MealPlan as MealPlanType, generateShoppingList } from '@/utils/mealPlanGenerator';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Flask } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, ShoppingCart, DollarSign, Utensils, Wheat, Salad, Droplets } from 'lucide-react';
 import ShoppingList from './ShoppingList';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -68,7 +67,7 @@ const MealCard = ({ meal }: { meal: Meal }) => {
           
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-full bg-indigo-100">
-              <Flask className="h-3.5 w-3.5 text-indigo-600" />
+              <Droplets className="h-3.5 w-3.5 text-indigo-600" />
             </div>
             <span className="text-sm truncate" title={meal.sauce.name}>{meal.sauce.name}</span>
           </div>

@@ -1,5 +1,7 @@
 
 import * as XLSX from 'xlsx';
+import { estimateFlavorProfile } from './flavorProfileEstimator';
+import { estimateIngredientCost } from './costEstimator';
 
 // Define the structure of our ingredient data
 export interface Ingredient {
@@ -24,7 +26,7 @@ export const parseExcelFile = async (
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -44,16 +46,39 @@ export const parseExcelFile = async (
         const sauces: Ingredient[] = [];
         
         // Process the JSON data
-        jsonData.forEach((row, index) => {
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
           // Extract relevant data from the row
+          const name = row.Name || row.name || '';
+          const category = (row.Category || row.category || '').toLowerCase();
+          
+          // Skip empty rows
+          if (!name || !category) continue;
+          
+          // Determine the category
+          let typedCategory: 'protein' | 'grain' | 'vegetable' | 'sauce' = 'protein';
+          if (category === 'grain') typedCategory = 'grain';
+          else if (category === 'vegetable') typedCategory = 'vegetable';
+          else if (category === 'sauce') typedCategory = 'sauce';
+          
+          // Get cost and flavor profile estimations if they're not provided
+          const cost = row.Cost || row.cost || await estimateIngredientCost(name, typedCategory);
+          
+          // Use provided flavor profile or estimate it
+          let flavorProfile: string[] = [];
+          if (row.FlavorProfile || row['Flavor Profile'] || row.flavorProfile) {
+            const flavorString = row.FlavorProfile || row['Flavor Profile'] || row.flavorProfile || '';
+            flavorProfile = flavorString.split(',').map((flavor: string) => flavor.trim());
+          } else {
+            flavorProfile = estimateFlavorProfile(name, typedCategory);
+          }
+          
           const ingredient: Ingredient = {
-            id: `${index}`,
-            name: row.Name || row.name || '',
-            category: (row.Category || row.category || '').toLowerCase(),
-            cost: Number(row.Cost || row.cost || 0),
-            flavorProfile: (row.FlavorProfile || row['Flavor Profile'] || row.flavorProfile || '')
-              .split(',')
-              .map((flavor: string) => flavor.trim()),
+            id: `${i}`,
+            name,
+            category: typedCategory,
+            cost: Number(cost),
+            flavorProfile,
             attributes: row.Attributes ? 
               row.Attributes.split(',').map((attr: string) => attr.trim()) : 
               undefined
@@ -73,35 +98,8 @@ export const parseExcelFile = async (
             case 'sauce':
               sauces.push(ingredient);
               break;
-            default:
-              // Try to guess the category based on name if not specified
-              if (
-                ingredient.name.toLowerCase().includes('chicken') || 
-                ingredient.name.toLowerCase().includes('beef') || 
-                ingredient.name.toLowerCase().includes('tofu')
-              ) {
-                ingredient.category = 'protein';
-                proteins.push(ingredient);
-              } else if (
-                ingredient.name.toLowerCase().includes('rice') || 
-                ingredient.name.toLowerCase().includes('pasta') || 
-                ingredient.name.toLowerCase().includes('bread')
-              ) {
-                ingredient.category = 'grain';
-                grains.push(ingredient);
-              } else if (
-                ingredient.name.toLowerCase().includes('sauce') || 
-                ingredient.name.toLowerCase().includes('dressing')
-              ) {
-                ingredient.category = 'sauce';
-                sauces.push(ingredient);
-              } else {
-                // Default to vegetable if we can't determine
-                ingredient.category = 'vegetable';
-                vegetables.push(ingredient);
-              }
           }
-        });
+        }
         
         resolve({ proteins, grains, vegetables, sauces });
       } catch (error) {

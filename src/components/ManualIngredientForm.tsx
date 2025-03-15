@@ -2,11 +2,11 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
+import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
@@ -15,17 +15,16 @@ interface ManualIngredientFormProps {
 
 interface IngredientItem {
   name: string;
-  flavorProfile: string;
 }
 
 const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({ 
   onDataSubmitted, 
   isLoading 
 }) => {
-  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
-  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
-  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
-  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '', flavorProfile: '' }]);
+  const [proteins, setProteins] = useState<IngredientItem[]>([{ name: '' }]);
+  const [grains, setGrains] = useState<IngredientItem[]>([{ name: '' }]);
+  const [vegetables, setVegetables] = useState<IngredientItem[]>([{ name: '' }]);
+  const [sauces, setSauces] = useState<IngredientItem[]>([{ name: '' }]);
   
   const [expandedSections, setExpandedSections] = useState({
     proteins: true,
@@ -45,7 +44,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
-    setter(prev => [...prev, { name: '', flavorProfile: '' }]);
+    setter(prev => [...prev, { name: '' }]);
   };
 
   const handleRemoveItem = (
@@ -59,13 +58,12 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   const handleItemChange = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     index: number,
-    field: keyof IngredientItem,
     value: string,
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
     setter(prev => 
       prev.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
+        i === index ? { ...item, name: value } : item
       )
     );
   };
@@ -79,13 +77,14 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       for (const item of items) {
         if (item.name.trim() !== '') {
           const estimatedCost = await estimateIngredientCost(item.name.trim(), category);
+          const flavorProfile = estimateFlavorProfile(item.name.trim(), category);
           
           parsedItems.push({
             id: `manual-${category}-${parsedItems.length}`,
             name: item.name.trim(),
             category,
             cost: estimatedCost,
-            flavorProfile: item.flavorProfile.split(',').map(f => f.trim()),
+            flavorProfile,
           });
         }
       }
@@ -154,19 +153,8 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
                     <Input
                       id={`${category}-${index}-name`}
                       value={item.name}
-                      onChange={(e) => handleItemChange(category, index, 'name', e.target.value, setter)}
+                      onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
                       placeholder={`Enter ${singleName.toLowerCase()} name`}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor={`${category}-${index}-flavor`}>Flavor Profile</Label>
-                    <Textarea
-                      id={`${category}-${index}-flavor`}
-                      value={item.flavorProfile}
-                      onChange={(e) => handleItemChange(category, index, 'flavorProfile', e.target.value, setter)}
-                      placeholder="e.g. sweet, savory, spicy (comma separated)"
-                      className="resize-none"
                     />
                   </div>
                 </div>
@@ -194,8 +182,8 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
         <p className="mb-2 font-medium">Instructions:</p>
         <ul className="list-disc list-inside space-y-1">
           <li>Add at least one item in each category</li>
-          <li>The app will automatically estimate costs for ingredients</li>
-          <li>For flavor profiles, enter comma-separated values (e.g., sweet, tangy, spicy)</li>
+          <li>Just enter the names - we'll estimate costs and flavor profiles automatically</li>
+          <li>The more specific you are with ingredient names, the better our estimates will be</li>
         </ul>
       </div>
       

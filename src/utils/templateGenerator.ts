@@ -5,21 +5,21 @@ export const generateTemplateFile = (): Blob => {
   // Create a new workbook
   const wb = XLSX.utils.book_new();
   
-  // Define the template data with headers and example rows (removing cost column)
+  // Define the template data with headers and example rows (removing flavor profile column)
   const data = [
-    ['Name', 'Category', 'FlavorProfile', 'Attributes'],
-    ['Chicken Breast', 'protein', 'mild, savory', 'lean, high-protein'],
-    ['Ground Beef', 'protein', 'rich, savory', 'versatile'],
-    ['Tofu', 'protein', 'mild, neutral', 'vegetarian'],
-    ['Brown Rice', 'grain', 'nutty, mild', 'whole-grain'],
-    ['Quinoa', 'grain', 'nutty, mild', 'high-protein'],
-    ['Pasta', 'grain', 'mild, neutral', 'versatile'],
-    ['Broccoli', 'vegetable', 'earthy, mild', 'cruciferous'],
-    ['Bell Peppers', 'vegetable', 'sweet, fresh', 'colorful'],
-    ['Spinach', 'vegetable', 'earthy, mild', 'leafy-green'],
-    ['Tomato Sauce', 'sauce', 'tangy, savory', 'acidic'],
-    ['Soy Sauce', 'sauce', 'salty, umami', 'fermented'],
-    ['Pesto', 'sauce', 'herby, savory', 'italian'],
+    ['Name', 'Category'],
+    ['Chicken Breast', 'protein'],
+    ['Ground Beef', 'protein'],
+    ['Tofu', 'protein'],
+    ['Brown Rice', 'grain'],
+    ['Quinoa', 'grain'],
+    ['Pasta', 'grain'],
+    ['Broccoli', 'vegetable'],
+    ['Bell Peppers', 'vegetable'],
+    ['Spinach', 'vegetable'],
+    ['Tomato Sauce', 'sauce'],
+    ['Soy Sauce', 'sauce'],
+    ['Pesto', 'sauce'],
   ];
   
   // Create a worksheet
@@ -27,10 +27,8 @@ export const generateTemplateFile = (): Blob => {
   
   // Set column widths for better readability
   const colWidths = [
-    { wch: 15 }, // Name
-    { wch: 10 }, // Category
-    { wch: 20 }, // FlavorProfile
-    { wch: 20 }, // Attributes
+    { wch: 20 }, // Name
+    { wch: 15 }, // Category
   ];
   
   ws['!cols'] = colWidths;

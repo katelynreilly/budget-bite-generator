@@ -17,7 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { User, createUser, loginUser, isTemporaryPassword } from '@/utils/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { PasswordReminder } from './PasswordReminder';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, UserPlus, LogIn } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type AuthProps = {
   onAuthSuccess: (user: User) => void;
@@ -33,7 +34,7 @@ const formSchema = z.object({
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(6, 'New password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Please confirm your password'),
+  confirmPassword: z.string().min(6, 'Confirm your password'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -225,8 +226,38 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
                 </DialogDescription>
               </DialogHeader>
               
+              <div className="flex flex-col sm:flex-row gap-3 my-4 border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 px-4 py-3 flex justify-center items-center gap-2 text-sm font-medium transition-colors",
+                    isLogin 
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => setIsLogin(true)}
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Log in</span>
+                </button>
+                
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 px-4 py-3 flex justify-center items-center gap-2 text-sm font-medium transition-colors",
+                    !isLogin 
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => setIsLogin(false)}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Create Account</span>
+                </button>
+              </div>
+              
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="username"
@@ -264,29 +295,17 @@ export function Auth({ onAuthSuccess, open, onOpenChange }: AuthProps) {
                           : "Create account"}
                     </Button>
                     
-                    <div className="flex justify-between items-center mt-1">
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        onClick={() => setIsLogin(!isLogin)}
+                    {isLogin && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        onClick={handleOpenPasswordReminder}
                         disabled={isSubmitting}
-                        className="text-sm p-0 h-auto"
+                        className="text-sm p-0 h-auto self-end"
                       >
-                        {isLogin ? "Need an account? Sign up" : "Already have an account? Log in"}
+                        Forgot password?
                       </Button>
-                      
-                      {isLogin && (
-                        <Button
-                          type="button"
-                          variant="link"
-                          onClick={handleOpenPasswordReminder}
-                          disabled={isSubmitting}
-                          className="text-sm p-0 h-auto"
-                        >
-                          Forgot password?
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </form>
               </Form>

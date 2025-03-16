@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, ChevronDown, ChevronUp, BookmarkPlus } from 'lucide-react';
+import { Plus, Minus, ChevronDown, ChevronUp, BookmarkPlus, AlertCircle } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
@@ -12,6 +13,7 @@ import { getSavedIngredientData, saveIngredientData } from '@/utils/storage';
 import { suggestedIngredients } from '@/pages/Index';
 import { Badge } from '@/components/ui/badge';
 import { cleanIngredientName } from '@/utils/nameGenerator';
+import { isFoodItem } from '@/utils/foodItemValidator';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,7 @@ interface ManualIngredientFormProps {
 interface IngredientItem {
   name: string;
   cookingMethod?: string;
+  isValid?: boolean;
 }
 
 const PROTEIN_COOKING_METHODS = ['Grilled', 'Baked', 'Air-fried', 'Pan-seared', 'Slow-cooked', 'Steamed', 'Poached', 'Stir-fried', 'Roasted'];
@@ -43,7 +46,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   isLoading,
   suggestedIngredients 
 }) => {
-  const createEmptyItems = () => Array(3).fill({ name: '', cookingMethod: '' });
+  const createEmptyItems = () => Array(3).fill({ name: '', cookingMethod: '', isValid: true });
   
   const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
   const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
@@ -62,7 +65,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
             cookingMethod = item.attributes[0];
           }
           
-          return { name, cookingMethod };
+          return { name, cookingMethod, isValid: true };
         });
       };
       
@@ -88,7 +91,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
-    setter(prev => [...prev, { name: '', cookingMethod: '' }]);
+    setter(prev => [...prev, { name: '', cookingMethod: '', isValid: true }]);
   };
 
   const handleRemoveItem = (
@@ -106,9 +109,13 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
   ) => {
     setter(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, name: value } : item
-      )
+      prev.map((item, i) => {
+        if (i === index) {
+          const isValid = value.trim() === '' || isFoodItem(value);
+          return { ...item, name: value, isValid };
+        }
+        return item;
+      })
     );
   };
 
@@ -139,16 +146,55 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       
       if (emptyIndex !== -1) {
         return prev.map((item, i) => 
-          i === emptyIndex ? suggestion : item
+          i === emptyIndex ? { ...suggestion, isValid: true } : item
         );
       } else {
-        return [...prev, suggestion];
+        return [...prev, { ...suggestion, isValid: true }];
       }
     });
   };
 
+  const validateInputs = () => {
+    let hasInvalidItems = false;
+    
+    // Check proteins
+    setProteins(prev => prev.map(item => {
+      const isValid = item.name.trim() === '' || isFoodItem(item.name);
+      if (!isValid) hasInvalidItems = true;
+      return { ...item, isValid };
+    }));
+    
+    // Check grains
+    setGrains(prev => prev.map(item => {
+      const isValid = item.name.trim() === '' || isFoodItem(item.name);
+      if (!isValid) hasInvalidItems = true;
+      return { ...item, isValid };
+    }));
+    
+    // Check vegetables
+    setVegetables(prev => prev.map(item => {
+      const isValid = item.name.trim() === '' || isFoodItem(item.name);
+      if (!isValid) hasInvalidItems = true;
+      return { ...item, isValid };
+    }));
+    
+    // Check sauces
+    setSauces(prev => prev.map(item => {
+      const isValid = item.name.trim() === '' || isFoodItem(item.name);
+      if (!isValid) hasInvalidItems = true;
+      return { ...item, isValid };
+    }));
+    
+    return !hasInvalidItems;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // First validate all inputs
+    if (!validateInputs()) {
+      return;
+    }
     
     const parseItems = async (items: IngredientItem[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
       const parsedItems = [];
@@ -232,12 +278,22 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
           {items.map((item, index) => (
             <div key={index} className="flex flex-wrap items-center gap-2 bg-secondary/20 rounded-md p-2">
               <div className={`flex-grow ${needsCookingMethod ? 'min-w-[180px]' : 'min-w-[250px]'}`}>
-                <Input
-                  value={item.name}
-                  onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
-                  placeholder={`${singleName} ${index + 1}`}
-                  className="h-8 text-sm"
-                />
+                <div className="relative">
+                  <Input
+                    value={item.name}
+                    onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
+                    placeholder={`${singleName} ${index + 1}`}
+                    className={`h-8 text-sm ${!item.isValid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {!item.isValid && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500">
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+                {!item.isValid && (
+                  <p className="text-xs text-red-500 mt-1">This doesn't appear to be a food item</p>
+                )}
               </div>
               
               {needsCookingMethod && (

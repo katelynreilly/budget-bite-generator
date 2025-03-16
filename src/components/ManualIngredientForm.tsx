@@ -1,41 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Minus, ChevronDown, ChevronUp, BookmarkPlus, AlertCircle } from 'lucide-react';
 import { ParsedData } from '@/utils/fileParser';
 import { estimateIngredientCost } from '@/utils/costEstimator';
 import { estimateFlavorProfile } from '@/utils/flavorProfileEstimator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getSavedIngredientData, saveIngredientData } from '@/utils/storage';
-import { suggestedIngredients } from '@/pages/Index';
-import { Badge } from '@/components/ui/badge';
 import { cleanIngredientName } from '@/utils/nameGenerator';
 import { isFoodItem } from '@/utils/foodItemValidator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { IngredientCategory } from './ingredients/IngredientCategory';
+import { FormInstructions } from './ingredients/FormInstructions';
+import { IngredientItem as IngredientItemType } from './ingredients/IngredientItem';
 
 interface ManualIngredientFormProps {
   onDataSubmitted: (data: ParsedData) => void;
   isLoading: boolean;
   suggestedIngredients?: {
-    proteins: IngredientItem[];
-    grains: IngredientItem[];
-    vegetables: IngredientItem[];
-    sauces: IngredientItem[];
+    proteins: IngredientItemType[];
+    grains: IngredientItemType[];
+    vegetables: IngredientItemType[];
+    sauces: IngredientItemType[];
   };
-}
-
-interface IngredientItem {
-  name: string;
-  cookingMethod?: string;
-  isValid?: boolean;
 }
 
 const PROTEIN_COOKING_METHODS = ['Grilled', 'Baked', 'Air-fried', 'Pan-seared', 'Slow-cooked', 'Steamed', 'Poached', 'Stir-fried', 'Roasted'];
@@ -48,10 +33,10 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
 }) => {
   const createEmptyItems = () => Array(3).fill({ name: '', cookingMethod: '', isValid: true });
   
-  const [proteins, setProteins] = useState<IngredientItem[]>(createEmptyItems());
-  const [grains, setGrains] = useState<IngredientItem[]>(createEmptyItems());
-  const [vegetables, setVegetables] = useState<IngredientItem[]>(createEmptyItems());
-  const [sauces, setSauces] = useState<IngredientItem[]>(createEmptyItems());
+  const [proteins, setProteins] = useState<IngredientItemType[]>(createEmptyItems());
+  const [grains, setGrains] = useState<IngredientItemType[]>(createEmptyItems());
+  const [vegetables, setVegetables] = useState<IngredientItemType[]>(createEmptyItems());
+  const [sauces, setSauces] = useState<IngredientItemType[]>(createEmptyItems());
 
   useEffect(() => {
     const savedData = getSavedIngredientData();
@@ -89,7 +74,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
 
   const handleAddItem = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+    setter: React.Dispatch<React.SetStateAction<IngredientItemType[]>>
   ) => {
     setter(prev => [...prev, { name: '', cookingMethod: '', isValid: true }]);
   };
@@ -97,7 +82,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   const handleRemoveItem = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     index: number,
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+    setter: React.Dispatch<React.SetStateAction<IngredientItemType[]>>
   ) => {
     setter(prev => prev.filter((_, i) => i !== index));
   };
@@ -106,7 +91,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
     index: number,
     value: string,
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+    setter: React.Dispatch<React.SetStateAction<IngredientItemType[]>>
   ) => {
     setter(prev => 
       prev.map((item, i) => {
@@ -123,7 +108,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     category: 'proteins' | 'vegetables',
     index: number,
     value: string,
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+    setter: React.Dispatch<React.SetStateAction<IngredientItemType[]>>
   ) => {
     setter(prev => 
       prev.map((item, i) => 
@@ -134,8 +119,8 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
   
   const handleAddSuggestion = (
     category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
-    suggestion: IngredientItem,
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>
+    suggestion: IngredientItemType,
+    setter: React.Dispatch<React.SetStateAction<IngredientItemType[]>>
   ) => {
     setter(prev => {
       if (prev.some(item => item.name === suggestion.name)) {
@@ -196,7 +181,7 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
       return;
     }
     
-    const parseItems = async (items: IngredientItem[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
+    const parseItems = async (items: IngredientItemType[], category: 'protein' | 'grain' | 'vegetable' | 'sauce') => {
       const parsedItems = [];
       
       for (const item of items) {
@@ -236,160 +221,88 @@ const ManualIngredientForm: React.FC<ManualIngredientFormProps> = ({
     }
   };
 
-  const renderIngredientFields = (
-    items: IngredientItem[],
-    category: 'proteins' | 'grains' | 'vegetables' | 'sauces',
-    setter: React.Dispatch<React.SetStateAction<IngredientItem[]>>,
-    label: string
-  ) => {
-    const singleName = category === 'proteins' ? 'Protein' : 
-                        category === 'grains' ? 'Grain' : 
-                        category === 'vegetables' ? 'Vegetable' : 'Sauce';
-    
-    const needsCookingMethod = category === 'proteins' || category === 'vegetables';
-    const cookingMethods = category === 'proteins' ? PROTEIN_COOKING_METHODS : VEGETABLE_COOKING_METHODS;
-    
-    return (
-      <div className="mb-3">
-        <div className="mb-2">
-          <h3 className="text-base font-medium">{label}</h3>
-        </div>
-        
-        {suggestedIngredients && (
-          <div className="mb-4 bg-secondary/30 p-3 rounded-md">
-            <p className="text-xs font-medium mb-2">Suggestions (click to add):</p>
-            <div className="flex flex-wrap gap-1.5">
-              {suggestedIngredients[category].map((suggestion, idx) => (
-                <Badge 
-                  key={idx}
-                  variant="outline" 
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                  onClick={() => handleAddSuggestion(category, suggestion, setter)}
-                >
-                  {suggestion.name}
-                  {suggestion.cookingMethod && ` (${suggestion.cookingMethod})`}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <div className="grid grid-cols-1 gap-2">
-          {items.map((item, index) => (
-            <div key={index} className="flex flex-wrap items-center gap-2 bg-secondary/20 rounded-md p-2">
-              <div className={`flex-grow ${needsCookingMethod ? 'min-w-[180px]' : 'min-w-[250px]'}`}>
-                <div className="relative">
-                  <Input
-                    value={item.name}
-                    onChange={(e) => handleItemChange(category, index, e.target.value, setter)}
-                    placeholder={`${singleName} ${index + 1}`}
-                    className={`h-8 text-sm ${!item.isValid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                  {!item.isValid && (
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500">
-                      <AlertCircle className="h-4 w-4" />
-                    </div>
-                  )}
-                </div>
-                {!item.isValid && (
-                  <p className="text-xs text-red-500 mt-1">This doesn't appear to be a food item</p>
-                )}
-              </div>
-              
-              {needsCookingMethod && (
-                <div className="w-[130px]">
-                  <Select
-                    value={item.cookingMethod || "none"}
-                    onValueChange={(value) => 
-                      handleCookingMethodChange(
-                        category as 'proteins' | 'vegetables', 
-                        index, 
-                        value === "none" ? "" : value, 
-                        setter
-                      )
-                    }
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Cooking method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No preference</SelectItem>
-                      {cookingMethods.map((method) => (
-                        <SelectItem key={method} value={method}>
-                          {method}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 shrink-0"
-                onClick={() => handleRemoveItem(category, index, setter)}
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-3 w-full border-dashed"
-          onClick={() => handleAddItem(category, setter)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add {singleName}
-        </Button>
-      </div>
-    );
-  };
-
   return (
     <form onSubmit={handleSubmit} className="animate-fade-in">
-      <div className="text-sm mb-4 p-3 bg-accent rounded-lg">
-        <p className="font-medium">Enter your preferred ingredients in each category:</p>
-        <p className="text-xs text-muted-foreground mt-1">For proteins and vegetables, you can also select your preferred cooking method.</p>
-        <p className="text-xs text-muted-foreground mt-1"><strong>Important:</strong> Please include at least one item in each category for the best meal plan results.</p>
-        {suggestedIngredients && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            <span className="text-xs font-medium">Suggestions:</span>
-            <Badge variant="outline" className="text-xs">Click on any suggestion to add it</Badge>
-          </div>
-        )}
-      </div>
+      <FormInstructions hasSuggestions={!!suggestedIngredients} />
       
       <Accordion type="single" collapsible defaultValue="proteins" className="space-y-2">
         <AccordionItem value="proteins" className="border rounded-lg px-3 py-2">
           <AccordionTrigger className="py-2">Proteins</AccordionTrigger>
           <AccordionContent>
-            {renderIngredientFields(proteins, 'proteins', setProteins, 'Proteins')}
+            <IngredientCategory
+              title="Proteins"
+              items={proteins}
+              category="proteins"
+              onChange={(index, value) => handleItemChange('proteins', index, value, setProteins)}
+              onRemove={(index) => handleRemoveItem('proteins', index, setProteins)}
+              onAdd={() => handleAddItem('proteins', setProteins)}
+              onCookingMethodChange={(index, value) => 
+                handleCookingMethodChange('proteins', index, value, setProteins)
+              }
+              cookingMethods={PROTEIN_COOKING_METHODS}
+              suggestions={suggestedIngredients?.proteins}
+              onAddSuggestion={(suggestion) => 
+                handleAddSuggestion('proteins', suggestion, setProteins)
+              }
+            />
           </AccordionContent>
         </AccordionItem>
         
         <AccordionItem value="grains" className="border rounded-lg px-3 py-2">
           <AccordionTrigger className="py-2">Grains</AccordionTrigger>
           <AccordionContent>
-            {renderIngredientFields(grains, 'grains', setGrains, 'Grains')}
+            <IngredientCategory
+              title="Grains"
+              items={grains}
+              category="grains"
+              onChange={(index, value) => handleItemChange('grains', index, value, setGrains)}
+              onRemove={(index) => handleRemoveItem('grains', index, setGrains)}
+              onAdd={() => handleAddItem('grains', setGrains)}
+              suggestions={suggestedIngredients?.grains}
+              onAddSuggestion={(suggestion) => 
+                handleAddSuggestion('grains', suggestion, setGrains)
+              }
+            />
           </AccordionContent>
         </AccordionItem>
         
         <AccordionItem value="vegetables" className="border rounded-lg px-3 py-2">
           <AccordionTrigger className="py-2">Vegetables</AccordionTrigger>
           <AccordionContent>
-            {renderIngredientFields(vegetables, 'vegetables', setVegetables, 'Vegetables')}
+            <IngredientCategory
+              title="Vegetables"
+              items={vegetables}
+              category="vegetables"
+              onChange={(index, value) => handleItemChange('vegetables', index, value, setVegetables)}
+              onRemove={(index) => handleRemoveItem('vegetables', index, setVegetables)}
+              onAdd={() => handleAddItem('vegetables', setVegetables)}
+              onCookingMethodChange={(index, value) => 
+                handleCookingMethodChange('vegetables', index, value, setVegetables)
+              }
+              cookingMethods={VEGETABLE_COOKING_METHODS}
+              suggestions={suggestedIngredients?.vegetables}
+              onAddSuggestion={(suggestion) => 
+                handleAddSuggestion('vegetables', suggestion, setVegetables)
+              }
+            />
           </AccordionContent>
         </AccordionItem>
         
         <AccordionItem value="sauces" className="border rounded-lg px-3 py-2">
           <AccordionTrigger className="py-2">Sauces</AccordionTrigger>
           <AccordionContent>
-            {renderIngredientFields(sauces, 'sauces', setSauces, 'Sauces')}
+            <IngredientCategory
+              title="Sauces"
+              items={sauces}
+              category="sauces"
+              onChange={(index, value) => handleItemChange('sauces', index, value, setSauces)}
+              onRemove={(index) => handleRemoveItem('sauces', index, setSauces)}
+              onAdd={() => handleAddItem('sauces', setSauces)}
+              suggestions={suggestedIngredients?.sauces}
+              onAddSuggestion={(suggestion) => 
+                handleAddSuggestion('sauces', suggestion, setSauces)
+              }
+            />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

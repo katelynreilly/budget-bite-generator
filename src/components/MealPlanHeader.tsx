@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, Library } from 'lucide-react';
+import { Save, Library, ArrowLeft } from 'lucide-react';
 
 interface MealPlanHeaderProps {
   setSaveDialogOpen: (open: boolean) => void;
   onOpenLibrary: () => void;
   handleRegeneratePlan: () => void;
+  onReenterIngredients: () => void;
   isLoading: boolean;
 }
 
@@ -14,6 +15,7 @@ const MealPlanHeader = ({
   setSaveDialogOpen,
   onOpenLibrary,
   handleRegeneratePlan,
+  onReenterIngredients,
   isLoading
 }: MealPlanHeaderProps) => {
   return (
@@ -28,6 +30,15 @@ const MealPlanHeader = ({
       </div>
       
       <div className="flex gap-2">
+        <Button
+          onClick={onReenterIngredients}
+          variant="outline"
+          className="transition-all gap-1.5"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Edit Ingredients</span>
+        </Button>
+        
         <Button
           onClick={() => setSaveDialogOpen(true)}
           variant="outline"

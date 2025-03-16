@@ -13,11 +13,18 @@ import SaveMealPlanDialog from './SaveMealPlanDialog';
 interface MealPlanProps {
   mealPlan: MealPlanType;
   onRegeneratePlan: () => void;
+  onReenterIngredients: () => void;
   isLoading: boolean;
   onOpenLibrary: () => void;
 }
 
-const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: MealPlanProps) => {
+const MealPlan = ({ 
+  mealPlan, 
+  onRegeneratePlan, 
+  onReenterIngredients,
+  isLoading, 
+  onOpenLibrary 
+}: MealPlanProps) => {
   const { toast } = useToast();
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('meals');
@@ -70,6 +77,7 @@ const MealPlan = ({ mealPlan, onRegeneratePlan, isLoading, onOpenLibrary }: Meal
         setSaveDialogOpen={setSaveDialogOpen}
         onOpenLibrary={onOpenLibrary}
         handleRegeneratePlan={handleRegeneratePlan}
+        onReenterIngredients={onReenterIngredients}
         isLoading={isLoading}
       />
       

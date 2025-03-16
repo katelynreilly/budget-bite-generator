@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import FileUpload from '@/components/FileUpload';
 import ManualIngredientForm from '@/components/ManualIngredientForm';
@@ -32,7 +31,6 @@ import { Auth } from '@/components/Auth';
 import { User, getCurrentUser, logoutUser, isUserLoggedIn } from '@/utils/auth';
 import { useToast } from '@/components/ui/use-toast';
 
-// Suggested ingredients for each category
 export const suggestedIngredients = {
   proteins: [
     { name: 'Chicken Breast', cookingMethod: 'Grilled' },
@@ -98,16 +96,14 @@ const Index = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { toast } = useToast();
 
-  // Load saved meal plans and favorite recipes on component mount
   useEffect(() => {
-    // Check if a user is already logged in
     const user = getCurrentUser();
     if (user) {
       setCurrentUser(user);
     }
     
     loadUserData();
-  }, [currentUser]); // Reload data when user changes
+  }, [currentUser]);
 
   const loadUserData = () => {
     setSavedPlans(getSavedMealPlans());
@@ -127,10 +123,17 @@ const Index = () => {
     }
   };
 
+  const handleReenterIngredients = () => {
+    setMealPlan(null);
+    toast({
+      title: "Edit Ingredients",
+      description: "You can now modify your ingredients and generate a new meal plan",
+    });
+  };
+
   const generatePlan = (data: ParsedData) => {
     setIsGenerating(true);
     
-    // Add a small delay to show loading state
     setTimeout(() => {
       const newPlan = generateMealPlan(data, {
         weeksCount: 4,
@@ -365,6 +368,7 @@ const Index = () => {
             <MealPlan 
               mealPlan={mealPlan} 
               onRegeneratePlan={handleRegeneratePlan}
+              onReenterIngredients={handleReenterIngredients}
               isLoading={isGenerating}
               onOpenLibrary={() => setIsLibraryOpen(true)}
             />
@@ -372,7 +376,6 @@ const Index = () => {
         )}
       </main>
       
-      {/* Meal Plan Library Dialog */}
       <MealPlanLibrary
         open={isLibraryOpen}
         onOpenChange={setIsLibraryOpen}
@@ -381,7 +384,6 @@ const Index = () => {
         onDeletePlan={handleDeleteSavedPlan}
       />
       
-      {/* Auth Dialog */}
       <Auth
         open={isAuthOpen}
         onOpenChange={setIsAuthOpen}

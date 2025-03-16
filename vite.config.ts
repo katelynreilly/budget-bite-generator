@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     host: "::",
     port: 8080,
-    https: false, // Disable HTTPS in development to avoid SSL errors
+    https: true, // Enable HTTPS for secure development
   },
   plugins: [
     react(),
